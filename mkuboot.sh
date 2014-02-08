@@ -4,7 +4,8 @@ export BUILD_DIR="tmp/build"
 export CROSS_COMPILE=arm-hisiv100nptl-linux-
 make distclean
 make hi3518a_config
-make all
+make
+make env
 
 echo "--------------------------------------------------------------------------"
 
