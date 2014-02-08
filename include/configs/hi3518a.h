@@ -134,13 +134,13 @@
 /* env in flash instead of CFG_ENV_IS_NOWHERE */
 #define CONFIG_ENV_IS_IN_SPI_FLASH	1
 
-#define CONFIG_ENV_OFFSET		0x80000 /* environment starts here */
+#define CONFIG_ENV_OFFSET		0x40000 /* environment starts here */
 #define CONFIG_ENV_NAND_ADDR		(CONFIG_ENV_OFFSET)
 #define CONFIG_ENV_SPI_ADDR		(CONFIG_ENV_OFFSET)
 #define CONFIG_CMD_SAVEENV
 
 #define CONFIG_STACKSIZE		(128 * 1024)
-#define CONFIG_ENV_SIZE			0x40000 /* include ENV_HEADER_SIZE */
+#define CONFIG_ENV_SIZE			0x20000 /* include ENV_HEADER_SIZE */
 #define CONFIG_ENV_SECT_SIZE		CONFIG_ENV_SIZE
 #define CONFIG_NR_DRAM_BANKS		1	/* we have 1 bank of DRAM */
 #define CFG_BOOT_PARAMS			(MEM_BASE_DDR + 0x0100)
@@ -148,14 +148,13 @@
 /*-----------------------------------------------------------------------
  *  Environment   Configuration
  ------------------------------------------------------------------------*/
-#define CONFIG_BOOTCOMMAND "bootm 0x82000000"
 
 #define CONFIG_BOOTDELAY 1
-#define CONFIG_BOOTARGS	"mem=64M console=ttyAMA0,115200"
-#define CONFIG_NETMASK	255.255.255.0		/* talk on MY local net */
-#define CONFIG_IPADDR	192.168.1.10		/* default static IP */
-#define CONFIG_SERVERIP	192.168.1.2		/* default tftp server ip */
-#define CONFIG_ETHADDR	00:00:23:34:45:66
+#define CONFIG_NETMASK	 255.255.255.0		/* talk on MY local net */
+#define CONFIG_IPADDR	 192.168.26.10		/* default static IP */
+#define CONFIG_GATEWAYIP 192.168.26.1
+#define CONFIG_SERVERIP	 192.168.26.211		/* default tftp server ip */
+#define CONFIG_ETHADDR	 74:37:2F:12:34:56
 #define CONFIG_BOOTFILE	"uImage"		/* file to load */
 #define CONFIG_BAUDRATE	115200
 
@@ -298,5 +297,69 @@
  * SVB
  * ----------------------------------------------------------------------*/
 /* #define CONFIG_SVB_ENABLE */
+
+
+/*-----------------------------------------------------------------------
+ * jiangjx add
+ * ----------------------------------------------------------------------*/
+#define CONFIG_CMD_RUN
+
+#define CONFIG_BOOTCOMMAND  \
+"sf probe 0;sf read 0x82000000 0x60000 0x200000;bootm 0x82000000"
+
+#define CONFIG_BOOTARGS   \
+"mem=96M console=ttyAMA0,115200 "   \
+"root=/dev/mtdblock3 rootfstype=cramfs rw init=/init "  \
+"ip=192.168.1.120:192.168.1.10:192.168.1.1:255.255.255.0::eth0:off eth=74:37:2F:00:00:00 " \
+"mtdparts=hi_sfc:256k(u-boot),128k(env),2M(kernel),2M(rootfs),512k(config),-(app)"
+
+#define CONFIG_BOOTARGS_NFS         \
+"setenv bootargs mem=96M console=ttyAMA0,115200 "   \
+"root=/dev/nfs rw nfsroot=${serverip}:${nfs_root} nolock " \
+"ip=${ipaddr}:${serverip}:${gatewayip}:${netmask}::eth0:off eth=${ethaddr} " \
+"mtdparts=hi_sfc:256k(u-boot),128k(env),2M(kernel),2M(rootfs),512k(config),-(app);" \
+"saveenv"
+
+#define MTDIDS_DEFAULT     "flash0=flash-0"
+#define MTDPARTS_DEFAULT   "mtdparts=flash-0:256k(u-boot),"    \
+                                            "128k(env)," \
+                                            "2m(kernel)," \
+                                            "2m(rootfs)," \
+                                            "512k(config)," \
+                                            "-(app)" 
+
+#define CONFIG_EXTRA_ENV_SETTINGS   \	
+"debug=1\0"\
+"loadaddr=82000000\0"\
+"bootaddr=82000000\0"\
+"ubootaddr=0\0"\
+"kernelerasesize=200000\0"\
+"kernelwritesize=200000\0"\
+"rootfserasesize=200000\0"\
+"rootfswritesize=200000\0"\
+"kerneladdr=60000\0"\ 
+"rootfsaddr=260000\0"\
+"ubootname=u-boot-200MHZ.bin\0"\
+"kernelname=uImage\0"\
+"rootfsname=rootfs\0"\
+"nfs_root=/home/jiangjx/UbuntuShare/filesys\0"\
+"erase_env=sf probe 0;sf erase 40000 20000\0"\
+"update_uboot=sf probe 0;"\
+     "mw.b ${loadaddr} 0xFF 0x40000;"\
+     "tftp ${loadaddr} ${ubootname};"\
+     "sf erase ${ubootaddr} 40000;"\
+     "sf write ${loadaddr} ${ubootaddr} 40000;\0"\
+"update_kernel=sf probe 0;"\
+     "mw.b ${loadaddr} 0xFF ${kernelwritesize};"\
+     "tftp ${loadaddr} ${kernelname};"\
+	 "sf erase ${kerneladdr} ${kernelerasesize};"\
+	 "sf write ${loadaddr} ${kerneladdr} ${kernelwritesize};\0"\
+"update_rootfs=sf probe 0;"\
+     "mw.b ${loadaddr} 0xFF ${rootfswritesize};"\
+     "tftp ${loadaddr} ${rootfsname};"\
+	 "sf erase ${rootfsaddr} ${rootfserasesize};"\
+	 "sf write ${loadaddr} ${rootfsaddr} ${rootfswritesize}\0"\
+"update_system=run update_kernel;run update_rootfs;"\
+                "echo ********TFTP Update System Finished!!!********"
 
 #endif	/* __CONFIG_H */
