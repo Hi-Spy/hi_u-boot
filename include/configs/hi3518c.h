@@ -199,7 +199,7 @@
  * console display  Configuration
  ------------------------------------------------------------------------*/
 #define CONFIG_VERSION_VARIABLE	1		/* used in common/main.c */
-#define CONFIG_SYS_PROMPT	"hisilicon # "	/* Monitor Command Prompt */
+#define CONFIG_SYS_PROMPT	"hisi_3518c # "	/* Monitor Command Prompt */
 #define CONFIG_SYS_CBSIZE	1024		/* Console I/O Buffer Size */
 #define CONFIG_SYS_PBSIZE	(CONFIG_SYS_CBSIZE+sizeof(CONFIG_SYS_PROMPT)+16)
 
@@ -279,63 +279,79 @@
  * ----------------------------------------------------------------------*/
 /* #define CONFIG_SVB_ENABLE */
 
+/*-----------------------------------------------------------------------
+ * jiangjx add
+ * ----------------------------------------------------------------------*/
+#define JJX_DEBUG 1
+#define CONFIG_CMD_RUN
+#define CONFIG_CMD_ECHO
+
 #define CONFIG_BOOTCOMMAND  \
-"sf probe 0;sf read 0x82000000 0x30000 0x200000;bootm 0x82000000"
+"sf probe 0;sf read 0x82000000 0x30000 0x180000;bootm 0x82000000"
 
 #define CONFIG_BOOTARGS   \
-"mem=96M console=ttyAMA0,115200 "   \
-"root=/dev/mtdblock3 rootfstype=cramfs rw init=/init "  \
+"mem=64M console=ttyAMA0,115200 "   \
+"root=/dev/mtdblock3 rootfstype=squashfs rw init=/init "  \
 "ip=192.168.1.120:192.168.1.10:192.168.1.1:255.255.255.0::eth0:off eth=74:37:2F:00:00:00 " \
-"mtdparts=hi_sfc:128k(u-boot),64k(env),2M(kernel),2M(rootfs),512k(config),-(app)"
+"mtdparts=hi_sfc:128k(u-boot)ro,64k(env),1536k(kernel),2560k(rootfs),512k(config),-(app)"
 
-#define CONFIG_BOOTARGS_NFS         \
-"setenv bootargs mem=96M console=ttyAMA0,115200 "   \
-"root=/dev/nfs rw nfsroot=${serverip}:${nfs_root} nolock " \
+#if JJX_DEBUG
+#define CONFIG_BOOTARGS_FLASH         \
+"setenv bootargs mem=64M console=ttyAMA0,115200 "	\
+"root=/dev/mtdblock3 rootfstype=squashfs rw init=/init "  \
 "ip=${ipaddr}:${serverip}:${gatewayip}:${netmask}::eth0:off eth=${ethaddr} " \
-"mtdparts=hi_sfc:128k(u-boot),64k(env),2M(kernel),2M(rootfs),512k(config),-(app);" \
+"mtdparts=hi_sfc:128k(u-boot)ro,64k(env),1536k(kernel),2560k(rootfs),512k(config),-(app);" \
 "saveenv"
 
-#define MTDIDS_DEFAULT     "flash0=flash-0"
-#define MTDPARTS_DEFAULT   "mtdparts=flash-0:128k(u-boot),"    \
+#define CONFIG_BOOTARGS_NFS         \
+"setenv bootargs mem=64M console=ttyAMA0,115200 "   \
+"root=/dev/nfs rw nfsroot=${serverip}:${nfs_root} nolock " \
+"ip=${ipaddr}:${serverip}:${gatewayip}:${netmask}::eth0:off eth=${ethaddr} " \
+"mtdparts=hi_sfc:128k(u-boot)ro,64k(env),1536k(kernel),2560k(rootfs),512k(config),-(app);" \
+"saveenv"
+
+#define MTDIDS_DEFAULT     "hi_sfc0=hi_sfc-0"
+#define MTDPARTS_DEFAULT   "mtdparts=hi_sfc-0:128k(u-boot)ro,"    \
                                             "64k(env)," \
-                                            "2m(kernel)," \
-                                            "2m(rootfs)," \
+                                            "1536k(kernel)," \
+                                            "2560k(rootfs)," \
                                             "512k(config)," \
                                             "-(app)" 
 
 #define CONFIG_EXTRA_ENV_SETTINGS   \	
-"debug=1\0"\
 "loadaddr=82000000\0"\
 "bootaddr=82000000\0"\
-"ubootaddr=fa0000\0"\
-"kernelerasesize=200000\0"\
-"kernelwritesize=200000\0"\
-"rootfserasesize=2000000\0"\
-"rootfswritesize=2000000\0"\
-"kerneladdr=30000\0"\ 
-"rootfsaddr=230000\0"\
+"ubootaddr=0\0"\
+"ubootsize=20000\0"\
+"envaddr=20000\0"\
+"envsize=10000\0"\
+"kerneladdr=30000\0"\
+"kernelsize=180000\0"\
+"rootfsaddr=1B0000\0"\
+"rootfssize=280000\0"\
 "ubootname=u-boot-200MHZ.bin\0"\
 "kernelname=uImage\0"\
-"rootfsname=rootfs\0"\
-"nfs_root=/home/jiangjx/UbuntuShare/filesys\0"\
-"erase_env=sf probe 0;sf erase 20000 10000\0"\
+"rootfsname=rootfs_64k.squashfs\0"\
+"nfs_root=/home/jiangjx/UbuntuShare/rootfs_uclibc\0"\
+"erase_env=sf probe 0;sf erase ${envaddr} ${envsize}\0"\
 "update_uboot=sf probe 0;"\
-     "mw.b ${loadaddr} 0xFF 0x20000;"\
+     "mw.b ${loadaddr} 0xFF ${ubootsize};"\
      "tftp ${loadaddr} ${ubootname};"\
-     "sf erase ${ubootaddr} 20000;"\
-     "sf write ${loadaddr} ${ubootaddr} 20000;\0"\
+     "sf erase ${ubootaddr} ${ubootsize};"\
+     "sf write ${loadaddr} ${ubootaddr} ${ubootsize};\0"\
 "update_kernel=sf probe 0;"\
-     "mw.b ${loadaddr} 0xFF ${kernelwritesize};"\
+     "mw.b ${loadaddr} 0xFF ${kernelsize};"\
      "tftp ${loadaddr} ${kernelname};"\
-	 "sf erase ${kernel1addr} ${kernelerasesize};"\
-	 "sf write ${loadaddr} ${kernel1addr} ${kernelwritesize};\0"\
+	 "sf erase ${kerneladdr} ${kernelsize};"\
+	 "sf write ${loadaddr} ${kerneladdr} ${kernelsize};\0"\
 "update_rootfs=sf probe 0;"\
-     "mw.b ${loadaddr} 0xFF ${rootfswritesize};"\
+     "mw.b ${loadaddr} 0xFF ${rootfssize};"\
      "tftp ${loadaddr} ${rootfsname};"\
-	 "sf erase ${rootfs1addr} ${rootfserasesize};"\
-	 "sf write ${loadaddr} ${rootfs1addr} ${rootfswritesize}\0"\
+	 "sf erase ${rootfsaddr} ${rootfssize};"\
+	 "sf write ${loadaddr} ${rootfsaddr} ${rootfssize}\0"\
 "update_system=run update_kernel;run update_rootfs;"\
-                "echo ********TFTP Update System Finished!!!********"
-
+     "echo ********TFTP Update System Finished!!!********"
+#endif
 
 #endif	/* __CONFIG_H */
+

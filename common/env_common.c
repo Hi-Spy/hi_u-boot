@@ -61,6 +61,9 @@ uchar default_environment[] = {
 #ifdef	CONFIG_BOOTARGS_NFS
 	"bootargs_nfs=" CONFIG_BOOTARGS_NFS 		"\0"
 #endif
+#ifdef	CONFIG_BOOTARGS_FLASH
+	"bootargs_flash=" CONFIG_BOOTARGS_FLASH 		"\0"
+#endif
 #ifdef	CONFIG_BOOTARGS
 	"bootargs="	CONFIG_BOOTARGS			"\0"
 #endif
