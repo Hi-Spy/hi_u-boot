@@ -4,6 +4,8 @@ export BUILD_DIR="tmp/build"
 export CROSS_COMPILE=arm-hisiv100nptl-linux-
 export ARCH=arm
 
+find ../hisi_u-boot-2010.06 | xargs touch
+
 make distclean
 make hi3518c_config
 make
