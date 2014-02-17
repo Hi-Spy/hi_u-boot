@@ -129,7 +129,7 @@
  ------------------------------------------------------------------------*/
 #define CONFIG_BOOTCOMMAND "bootm 0x82000000"
 
-#define CONFIG_BOOTDELAY 0
+#define CONFIG_BOOTDELAY    0
 
 #define CONFIG_NETMASK	    255.255.255.0		/* talk on MY local net */
 #define CONFIG_IPADDR	    192.168.26.120		/* default static IP */
@@ -293,32 +293,32 @@
 "mem=64M console=ttyAMA0,115200 "   \
 "root=/dev/mtdblock3 rootfstype=squashfs rw init=/init "  \
 "ip=192.168.1.120:192.168.1.10:192.168.1.1:255.255.255.0::eth0:off eth=74:37:2F:00:00:00 " \
-"mtdparts=hi_sfc:128k(u-boot)ro,64k(env),3m(kernel),3584k(rootfs),512k(config),-(app)"
+"mtdparts=hi_sfc:128k(u-boot)ro,64k(env),3m(kernel),4608k(rootfs),512k(config),-(app)"
 
 #if JJX_DEBUG
 #define CONFIG_BOOTARGS_FLASH         \
 "setenv bootargs mem=64M console=ttyAMA0,115200 "	\
 "root=/dev/mtdblock3 rootfstype=squashfs rw init=/init "  \
 "ip=${ipaddr}:${serverip}:${gatewayip}:${netmask}::eth0:off eth=${ethaddr} " \
-"mtdparts=hi_sfc:128k(u-boot)ro,64k(env),3m(kernel),3584k(rootfs),512k(config),-(app);" \
+"mtdparts=hi_sfc:128k(u-boot)ro,64k(env),3m(kernel),4608k(rootfs),512k(config),-(app);" \
 "saveenv"
 
 #define CONFIG_BOOTARGS_NFS         \
 "setenv bootargs mem=64M console=ttyAMA0,115200 "   \
 "root=/dev/nfs rw nfsroot=${serverip}:${nfs_root} nolock " \
 "ip=${ipaddr}:${serverip}:${gatewayip}:${netmask}::eth0:off eth=${ethaddr} " \
-"mtdparts=hi_sfc:128k(u-boot)ro,64k(env),3m(kernel),3584k(rootfs),512k(config),-(app);" \
+"mtdparts=hi_sfc:128k(u-boot)ro,64k(env),3m(kernel),4608k(rootfs),512k(config),-(app);" \
 "saveenv"
 
 #define MTDIDS_DEFAULT     "hi_sfc0=hi_sfc-0"
 #define MTDPARTS_DEFAULT   "mtdparts=hi_sfc-0:128k(u-boot)ro,"    \
                                             "64k(env)," \
                                             "3m(kernel)," \
-                                            "3584k(rootfs)," \
+                                            "4608k(rootfs)," \
                                             "512k(config)," \
                                             "-(app)" 
 
-#define CONFIG_EXTRA_ENV_SETTINGS   \	
+#define CONFIG_EXTRA_ENV_SETTINGS   \
 "bootdelay=0\0"\
 "loadaddr=82000000\0"\
 "bootaddr=82000000\0"\
@@ -328,7 +328,7 @@
 "kerneladdr=30000\0"\
 "kernelsize=300000\0"\
 "rootfsaddr=330000\0"\
-"rootfssize=380000\0"\
+"rootfssize=480000\0"\
 "ubootname=u-boot-200MHZ.bin\0"\
 "kernelname=uImage\0"\
 "rootfsname=rootfs_64k.squashfs\0"\
