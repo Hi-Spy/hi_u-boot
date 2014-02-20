@@ -1,6 +1,6 @@
 #!/bin/sh
 #jiangjx added 2014.02.08	
-export BUILD_DIR="tmp/build"
+export BUILD_DIR="obj/build"
 export CROSS_COMPILE=arm-hisiv100nptl-linux-
 export ARCH=arm
 
