@@ -292,14 +292,12 @@
 #define CONFIG_BOOTARGS   \
 "mem=80M console=ttyAMA0,115200 "   \
 "root=/dev/mtdblock3 rootfstype=squashfs rw init=/init "  \
-"ip=192.168.1.120:192.168.1.10:192.168.1.1:255.255.255.0::eth0:off eth=74:37:2F:00:00:00 " \
 "mtdparts=hi_sfc:128k(u-boot)ro,64k(env),3m(kernel),4608k(rootfs),512k(config),-(app)"
 
 #if JJX_DEBUG
 #define CONFIG_BOOTARGS_FLASH         \
 "setenv bootargs mem=80M console=ttyAMA0,115200 "	\
 "root=/dev/mtdblock3 rootfstype=squashfs rw init=/init "  \
-"ip=${ipaddr}:${serverip}:${gatewayip}:${netmask}::eth0:off eth=${ethaddr} " \
 "mtdparts=hi_sfc:128k(u-boot)ro,64k(env),3m(kernel),4608k(rootfs),512k(config),-(app);" \
 "saveenv"
 
@@ -312,11 +310,11 @@
 
 #define MTDIDS_DEFAULT     "hi_sfc0=hi_sfc-0"
 #define MTDPARTS_DEFAULT   "mtdparts=hi_sfc-0:128k(u-boot)ro,"    \
-                                            "64k(env)," \
-                                            "3m(kernel)," \
-                                            "4608k(rootfs)," \
-                                            "512k(config)," \
-                                            "-(app)" 
+                                              "64k(env)," \
+                                              "3m(kernel)," \
+                                              "4608k(rootfs)," \
+                                              "512k(config)," \
+                                              "-(app)" 
 
 #define CONFIG_EXTRA_ENV_SETTINGS   \
 "loadaddr=82000000\0"\

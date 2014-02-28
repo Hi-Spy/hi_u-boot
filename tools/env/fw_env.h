@@ -54,7 +54,6 @@
 #define CONFIG_BOOTARGS   \
 "mem=80M console=ttyAMA0,115200 "   \
 "root=/dev/mtdblock3 rootfstype=squashfs rw init=/init "  \
-"ip=192.168.1.120:192.168.1.10:192.168.1.1:255.255.255.0::eth0:off eth=74:37:2F:00:00:00 " \
 "mtdparts=hi_sfc:128k(u-boot)ro,64k(env),3m(kernel),4608k(rootfs),512k(config),-(app)"
 
 
@@ -63,3 +62,4 @@ extern char *fw_getenv  (char *name);
 extern int fw_setenv  (int argc, char *argv[]);
 
 extern unsigned	long  crc32	 (unsigned long, const unsigned char *, unsigned);
+
