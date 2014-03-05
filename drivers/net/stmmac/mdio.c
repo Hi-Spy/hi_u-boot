@@ -6,6 +6,10 @@
 #include "sys_godnet.h"
 #endif
 
+#ifdef CONFIG_HI3535
+#include "sys_hi3535.h"
+#endif
+
 #define MII_BUSY 0x00000001
 #define MII_WRITE 0x00000002
 
@@ -17,7 +21,7 @@ void stmmac_mdio_clk_init(struct stmmac_mdio_local *ld)
 	unsigned long tnkclk;
 
 	busclk = CFG_CLK_BUS;
-#ifdef TNK
+#ifdef CONFIG_TNK
 	tnkclk = get_tnkclk(busclk);
 #else
 	tnkclk = busclk >> 1;

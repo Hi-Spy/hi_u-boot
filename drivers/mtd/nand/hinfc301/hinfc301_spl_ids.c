@@ -31,8 +31,7 @@
 #define _16G           (0x400000000ULL)
 /*****************************************************************************/
 
-struct nand_flash_special_dev
-{
+struct nand_flash_special_dev {
 	unsigned char id[8];
 	int length;             /* length of id. */
 	unsigned long long chipsize;
@@ -75,7 +74,7 @@ static struct nand_flash_dev *hynix_probe_v02(unsigned char id[8])
 }
 /*****************************************************************************/
 
-static struct nand_flash_dev * samsung_probe_v02(unsigned char id[8])
+static struct nand_flash_dev *samsung_probe_v02(unsigned char id[8])
 {
 	static struct nand_flash_dev type[2];
 
@@ -95,48 +94,67 @@ static struct nand_flash_dev * samsung_probe_v02(unsigned char id[8])
 }
 /*****************************************************************************/
 
-static struct nand_flash_special_dev nand_flash_special_dev[] =
-{
+static struct nand_flash_special_dev nand_flash_special_dev[] = {
 	/*
 	 * Micron
-	 * 1st   2nd   3rd   4th   5th   6th   7th   8th   len  chipsize   device            pagesize erasesize oobsize options */
-	{ {0x2C, 0x38, 0x00, 0x26, 0x85, 0x00, 0x00, 0x00}, 8,  _1G, NULL, "MT29F8G08ABxBAx",  _4K,  _512K,     224,    0 }, 
-	{ {0x2C, 0x48, 0x04, 0x46, 0x85, 0x00, 0x00, 0x00}, 8,  _2G, NULL, "MT29F16G08CBABx",  _4K,  _1M,       224,    0 },
-	{ {0x2C, 0x48, 0x04, 0x4A, 0xA5, 0x00, 0x00, 0x00}, 8,  _2G, NULL, "MT29F16G08CBACA",  _4K,  _1M,       224,    0 },
-	{ {0x2C, 0x68, 0x04, 0x4A, 0xA9, 0x00, 0x00, 0x00}, 8,  _4G, NULL, "MT29F32G08CBACA",  _4K,  _1M,       224,    0 },
-	{ {0x2C, 0x88, 0x04, 0x4B, 0xA9, 0x00, 0x00, 0x00}, 8,  _8G, NULL, "MT29F64G08CBAAA",  _8K,  _2M,       448,    0 },
-	{ {0x2C, 0xA8, 0x05, 0xCB, 0xA9, 0x00, 0x00, 0x00}, 8, _16G, NULL, "MT29F128G08CXXXX", _8K,  _2M,       448,    0 },
+	 * 1st   2nd   3rd   4th   5th   6th   7th   8th   len
+		chipsize   device      pagesize erasesize oobsize options */
+	{ {0x2C, 0x38, 0x00, 0x26, 0x85, 0x00, 0x00, 0x00}, 8,
+		_1G, NULL, "MT29F8G08ABxBAx",  _4K,  _512K,     224,    0 },
+	{ {0x2C, 0x48, 0x04, 0x46, 0x85, 0x00, 0x00, 0x00}, 8,
+		_2G, NULL, "MT29F16G08CBABx",  _4K,  _1M,       224,    0 },
+	{ {0x2C, 0x48, 0x04, 0x4A, 0xA5, 0x00, 0x00, 0x00}, 8,
+		_2G, NULL, "MT29F16G08CBACA",  _4K,  _1M,       224,    0 },
+	{ {0x2C, 0x68, 0x04, 0x4A, 0xA9, 0x00, 0x00, 0x00}, 8,
+		_4G, NULL, "MT29F32G08CBACA",  _4K,  _1M,       224,    0 },
+	{ {0x2C, 0x88, 0x04, 0x4B, 0xA9, 0x00, 0x00, 0x00}, 8,
+		_8G, NULL, "MT29F64G08CBAAA",  _8K,  _2M,       448,    0 },
+	{ {0x2C, 0xA8, 0x05, 0xCB, 0xA9, 0x00, 0x00, 0x00}, 8,
+		_16G, NULL, "MT29F128G08CXXXX", _8K,  _2M,       448,    0 },
 
 	/*
 	 * Toshiba
-	 * 1st   2nd   3rd   4th   5th   6th                                 pagesize erasesize oobsize options */
-	{ {0x98, 0xD5, 0x94, 0x32, 0x76, 0x55, }, 6, _4G, NULL, "TC58NVG4D2F", _8K,     _1M,      448,     0 },
-	{ {0x98, 0xD7, 0x94, 0x32, 0x76, 0x55, }, 6, _8G, NULL, "TC58NVG6D2F", _8K,     _1M,      448,     0 },
+	 * 1st   2nd   3rd   4th   5th   6th
+					pagesize erasesize oobsize options */
+	{ {0x98, 0xD5, 0x94, 0x32, 0x76, 0x55, }, 6,
+		_4G, NULL, "TC58NVG4D2F", _8K,     _1M,      448,     0 },
+	{ {0x98, 0xD7, 0x94, 0x32, 0x76, 0x55, }, 6,
+		_8G, NULL, "TC58NVG6D2F", _8K,     _1M,      448,     0 },
 
 	/*
 	 * Samsung
-	 *     K9xxG08UxD: K9LBG08U0D / K9HCG08U1D / K9XDG08U5D
-	 * 1st   2nd   3rd   4th   5th   6th     len                                    */
-	{ {0xEC, 0xD7, 0xD5, 0x29, 0x38, 0x41, }, 6, _4G, samsung_probe_v02, "K9xxG08UxD", 0,0,0,0},
-	{ {0xEC, 0xD5, 0x84, 0x72, 0x50, 0x42, }, 6, _2G, samsung_probe_v02, "K9GAG08U0E", 0,0,0,0},
-	{ {0xEC, 0xD7, 0xC5, 0x72, 0x54, 0x42, }, 6, _4G, samsung_probe_v02, "K9LBG08U0E", 0,0,0,0},
-	{ {0xEC, 0xD3, 0x84, 0x72, 0x50, 0x42, }, 6, _1G, samsung_probe_v02, "K9G8G08U0C", 0,0,0,0},
-	/* 1st   2nd   3rd   4th   5th     len  chipsize    device        pagesize erasesize oobsize options */
-	{ {0xEC, 0xD7, 0x55, 0xB6, 0x78},  5,   _4G,  NULL, "K9xxG08UxM", _4K,     _512K,    128,    0},
+	 * K9xxG08UxD: K9LBG08U0D / K9HCG08U1D / K9XDG08U5D
+		* 1st   2nd   3rd   4th   5th   6th     len */
+	{ {0xEC, 0xD7, 0xD5, 0x29, 0x38, 0x41, }, 6,
+		_4G, samsung_probe_v02, "K9xxG08UxD", 0, 0, 0, 0},
+	{ {0xEC, 0xD5, 0x84, 0x72, 0x50, 0x42, }, 6,
+		_2G, samsung_probe_v02, "K9GAG08U0E", 0, 0, 0, 0},
+	{ {0xEC, 0xD7, 0xC5, 0x72, 0x54, 0x42, }, 6,
+		_4G, samsung_probe_v02, "K9LBG08U0E", 0, 0, 0, 0},
+	{ {0xEC, 0xD3, 0x84, 0x72, 0x50, 0x42, }, 6,
+		_1G, samsung_probe_v02, "K9G8G08U0C", 0, 0, 0, 0},
+	/* 1st   2nd   3rd   4th   5th     len
+		chipsize    device        pagesize erasesize oobsize options */
+	{ {0xEC, 0xD7, 0x55, 0xB6, 0x78},  5,
+		_4G,  NULL, "K9xxG08UxM", _4K,     _512K,    128,    0},
 
 	/*
 	 * Hynix
-	 * 1st   2nd   3rd   4th   5th   6th     len                                   */
-	{ {0xAD, 0xD5, 0x94, 0x25, 0x44, 0x41, }, 6, _2G, hynix_probe_v02, "H27UAG8T2A", 0,0,0,0},
-	{ {0xAD, 0xD5, 0x94, 0x9A, 0x74, 0x42, }, 6, _2G, hynix_probe_v02, "H27UAG8T2B", 0,0,0,0},
-	{ {0xAD, 0xD7, 0x94, 0x9A, 0x74, 0x42, }, 6, _4G, hynix_probe_v02, "H27UBG8T2A", 0,0,0,0},
-	/* 1st   2nd   3rd   4th     len chipsize   device        pagesize erasesize oobsize options */
+	 * 1st   2nd   3rd   4th   5th   6th     len */
+	{ {0xAD, 0xD5, 0x94, 0x25, 0x44, 0x41, }, 6,
+		_2G, hynix_probe_v02, "H27UAG8T2A", 0, 0, 0, 0},
+	{ {0xAD, 0xD5, 0x94, 0x9A, 0x74, 0x42, }, 6,
+		_2G, hynix_probe_v02, "H27UAG8T2B", 0, 0, 0, 0},
+	{ {0xAD, 0xD7, 0x94, 0x9A, 0x74, 0x42, }, 6,
+		_4G, hynix_probe_v02, "H27UBG8T2A", 0, 0, 0, 0},
+	/* 1st   2nd   3rd   4th  len chipsize
+	device  pagesize erasesize oobsize options */
 
-	{{0},0,0,0,0,0,0,0,0},
+	{{0}, 0, 0, 0, 0, 0, 0, 0, 0},
 };
 
 /*****************************************************************************/
-struct nand_tag nandtag[1] = {{{0},0,0,0,0,0,0,{0}}};
+struct nand_tag nandtag[1] = {{{0}, 0, 0, 0, 0, 0, 0, {0} } };
 
 struct nand_flash_dev *nand_get_special_flash_type(struct mtd_info *mtd,
 	struct nand_chip *chip, unsigned char byte[8])
@@ -146,24 +164,20 @@ struct nand_flash_dev *nand_get_special_flash_type(struct mtd_info *mtd,
 	struct nand_flash_special_dev *spl_dev;
 
 	for (ix = 2; ix < 8; ix++)
-	{
 		byte[ix] = chip->read_byte(mtd);
-	}
 
-	printk("Nand ID: 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X\n",
-		byte[0], byte[1], byte[2], byte[3], byte[4], byte[5], byte[6], byte[7]);
 
-	for (spl_dev = nand_flash_special_dev; spl_dev->length; spl_dev++)
-	{
+	printf("Nand ID: 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X\n",
+		byte[0], byte[1], byte[2], byte[3],
+		byte[4], byte[5], byte[6], byte[7]);
+
+	for (spl_dev = nand_flash_special_dev; spl_dev->length; spl_dev++) {
 		if (memcmp(byte, spl_dev->id, spl_dev->length))
 			continue;
 
-		if (spl_dev->probe)
-		{
+		if (spl_dev->probe) {
 			flash_type = spl_dev->probe(byte);
-		}
-		else
-		{
+		} else {
 			static struct nand_flash_dev type[2];
 
 			type->options   = spl_dev->options;
@@ -201,7 +215,7 @@ struct nand_flash_dev *nand_get_special_flash_type(struct mtd_info *mtd,
 
 void nand_spl_ids_register(void)
 {
-	printk("Special Nand id table Version %s\n", DRV_VERSION);
+	printf("Special Nand id table Version %s\n", DRV_VERSION);
 	nand_base_get_special_flash_type = nand_get_special_flash_type;
 }
 /*****************************************************************************/

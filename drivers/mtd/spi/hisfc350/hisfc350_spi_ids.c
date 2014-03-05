@@ -261,6 +261,14 @@ static struct spi_driver  spi_driver_f25l64q = {
 	.bus_prepare  = spi_general_bus_prepare,
 	.qe_enable = spi_mx25l25635e_qe_enable,
 };
+#include "hisfc350_spi_gd25qxxx.c"
+static struct spi_driver  spi_driver_gd25qxxx = {
+	.wait_ready   = spi_general_wait_ready,
+	.write_enable = spi_general_write_enable,
+	.entry_4addr  = spi_general_entry_4addr,
+	.bus_prepare  = spi_general_bus_prepare,
+	.qe_enable = spi_gd25qxxx_qe_enable,
+};
 
 #include "hisfc350_spi_en25q64.c"
 static struct spi_driver  spi_driver_en25q64 = {
@@ -1870,5 +1878,59 @@ struct spi_info hisfc350_spi_info_table[] = {
 		&spi_driver_f25l64q,
 	},
 
+	{
+		"GD25Q128", {0xC8, 0x40, 0x18}, 3, _16M,  _64K, 3,
+		{
+			&READ_STD(0, INFINITE, 66),
+			&READ_QUAD(1, INFINITE, 80),
+			0
+		},
+		{
+			&WRITE_STD(0, 256, 100),
+			&WRITE_QUAD(0, 256, 80),
+			0
+		},
+		{
+			&ERASE_SECTOR_64K(0, _64K, 100),
+			0
+		},
+		&spi_driver_gd25qxxx,
+	},
+	{
+		"GD25Q64", {0xC8, 0x40, 0x17}, 3, _8M,  _64K, 3,
+		{
+			&READ_STD(0, INFINITE, 66),
+			&READ_QUAD(1, INFINITE, 80),
+			0
+		},
+		{
+			&WRITE_STD(0, 256, 100),
+			&WRITE_QUAD(0, 256, 80),
+			0
+		},
+		{
+			&ERASE_SECTOR_64K(0, _64K, 100),
+			0
+		},
+		&spi_driver_general,
+	},
+	{
+		"GD25Q32", {0xC8, 0x40, 0x16}, 3, _4M,  _64K, 3,
+		{
+			&READ_STD(0, INFINITE, 66),
+			&READ_QUAD(1, INFINITE, 80),
+			0
+		},
+		{
+			&WRITE_STD(0, 256, 100),
+			&WRITE_QUAD(0, 256, 80),
+			0
+		},
+		{
+			&ERASE_SECTOR_64K(0, _64K, 100),
+			0
+		},
+		&spi_driver_general,
+	},
 	{0, {0}, 0, 0, 0, 0, {0}, {0}, {0}, NULL},
 };

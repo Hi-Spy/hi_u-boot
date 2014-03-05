@@ -26,9 +26,123 @@ int find_dev_and_part(const char *id, struct mtd_device **dev,
 		      u8 *part_num, struct part_info **part);
 #endif
 
+#define HINFC_VER_300                   (0x300)
+#define HINFC_VER_301                   (0x301)
+#define HINFC_VER_310                   (0x310)
+#define HINFC_VER_504                   (0x504)
+#define HINFC_VER_505                   (0x505)
+#define HINFC_VER_600                   (0x600)
+
+#define _512B                               (512)
+#define _2K                                 (2048)
+#define _4K                                 (4096)
+#define _8K                                 (8192)
+#define _16K                                (16384)
+
+enum ecc_type {
+	et_ecc_none    = 0x00,
+	et_ecc_1bit    = 0x01,
+	et_ecc_4bit    = 0x02,
+	et_ecc_4bytes  = 0x02,
+	et_ecc_8bytes  = 0x03,
+	et_ecc_24bit1k = 0x04,
+	et_ecc_40bit1k = 0x05,
+};
+
+enum page_type {
+	pt_pagesize_512   = 0x00,
+	pt_pagesize_2K    = 0x01,
+	pt_pagesize_4K    = 0x02,
+	pt_pagesize_8K    = 0x03,
+	pt_pagesize_16K   = 0x04,
+};
+
+
+
+/*
+ * v504: 2k1b 2k4b 2k24b 4k1b 4k4b 4k24b 8k24b 8k40b
+ * v301: 2k1b            4k1b 4k4b 4k24b 8k24b
+ * v300: 2k1b            4k1b 4k4b 4k24b 8k24b
+ *
+ */
+
+#define HINFC_VER_VER          (0xFFF00000)
+
+#define SET_HINFC_VER(_ver, _pagesize, _ecc) \
+	((((_ver) << 20) & HINFC_VER_VER) | \
+		(((_pagesize) & 0xFFFF) << 4) | ((_ecc) & 0xF))
+
+static unsigned int hinfc300_support_yaffs2[] = {
+	SET_HINFC_VER(HINFC_VER_300, _2K, et_ecc_1bit),
+
+	SET_HINFC_VER(HINFC_VER_300, _4K, et_ecc_1bit),
+	SET_HINFC_VER(HINFC_VER_300, _4K, et_ecc_4bytes),
+	SET_HINFC_VER(HINFC_VER_300, _4K, et_ecc_24bit1k),
+
+	SET_HINFC_VER(HINFC_VER_300, _8K, et_ecc_24bit1k),
+	0,
+};
+
+static unsigned int hinfc301_support_yaffs2[] = {
+	SET_HINFC_VER(HINFC_VER_301, _2K, et_ecc_1bit),
+
+	SET_HINFC_VER(HINFC_VER_301, _4K, et_ecc_1bit),
+	SET_HINFC_VER(HINFC_VER_301, _4K, et_ecc_4bytes),
+	SET_HINFC_VER(HINFC_VER_301, _4K, et_ecc_24bit1k),
+
+	SET_HINFC_VER(HINFC_VER_301, _8K, et_ecc_24bit1k),
+	0,
+};
+
+static unsigned int hinfc504_support_yaffs2[] = {
+	SET_HINFC_VER(HINFC_VER_504, _2K, et_ecc_4bit),
+	SET_HINFC_VER(HINFC_VER_504, _2K, et_ecc_8bytes),
+	SET_HINFC_VER(HINFC_VER_504, _2K, et_ecc_24bit1k),
+
+	SET_HINFC_VER(HINFC_VER_301, _4K, et_ecc_1bit),
+	SET_HINFC_VER(HINFC_VER_301, _4K, et_ecc_4bytes),
+	SET_HINFC_VER(HINFC_VER_504, _4K, et_ecc_8bytes),
+	SET_HINFC_VER(HINFC_VER_301, _4K, et_ecc_24bit1k),
+
+	SET_HINFC_VER(HINFC_VER_301, _8K, et_ecc_24bit1k),
+	SET_HINFC_VER(HINFC_VER_504, _8K, et_ecc_40bit1k),
+	0,
+};
+/*****************************************************************************/
+
+static unsigned int *get_support_yaffs2(unsigned int nandip)
+{
+	switch (nandip) {
+		default:
+		case HINFC_VER_300:
+			return hinfc300_support_yaffs2;
+		case HINFC_VER_301:
+			return hinfc301_support_yaffs2;
+		case HINFC_VER_504:
+			return hinfc504_support_yaffs2;
+	}
+}
+/*****************************************************************************/
+
+static unsigned int get_yaffs2_version(unsigned int nandip, int pagesize,
+	int ecc)
+{
+	int ix;
+	unsigned int *ver = get_support_yaffs2(nandip);
+	unsigned int tmp = SET_HINFC_VER(0, pagesize, ecc);
+
+	for (ix = 0; ver[ix]; ix++) {
+		if ((ver[ix] & ~HINFC_VER_VER) == tmp)
+			return ver[ix];
+	}
+
+	return 0;
+}
 static int yaffs_tag_check(unsigned char *buffer, unsigned int writesize,
 	unsigned int length)
 {
+	unsigned int hinfc_yaff_ver;
+	unsigned int yaffs_yaff_ver;
 	static char *ecctype_str[] = 
 		{ "None", "1bit", "4Bytes", "8Bytes", "24bits/1K", "unknown", "unknown", "unknown"};
 
@@ -62,14 +176,6 @@ static int yaffs_tag_check(unsigned char *buffer, unsigned int writesize,
 		return -1;
 	}
 
-	if (tags->nandip != nand_ip_version)
-	{
-		printf("!!! The yaffs2 filesystem image tools(0x%X) is not fit current nand controller(0x%X).\n"
-			"please update your mkyaffs2image tool, and remake yaffs2 filesystem image.\n",
-			tags->nandip, nand_ip_version);
-		return -1;
-	}
-
 	if (writesize != tags->pagesize)
 	{
 		printf("!!! yaffs2 filesystem image pagesize(%d) is NOT consistent with hardware pagesize(%d).\n",
@@ -84,6 +190,34 @@ static int yaffs_tag_check(unsigned char *buffer, unsigned int writesize,
 		goto fail;
 	}
 
+	/*
+	 * When write 8k40bit yaffs2 filesystem to hinfc301,
+	 * It will print this error, because cpu not support.
+	 */
+	hinfc_yaff_ver = get_yaffs2_version(nand_ip_version, writesize,
+			ecctype);
+	if (!hinfc_yaff_ver) {
+		printf("!!! The yaffs2 filesystem "
+			"or mkyaffs2image for cpu ver(0x%X) "
+			"But your demo board cpu ver(0x%X).\n",
+			tags->nandip, nand_ip_version);
+		goto fail1;
+	}
+
+	yaffs_yaff_ver = get_yaffs2_version(tags->nandip, writesize, ecctype);
+	if (!yaffs_yaff_ver) {
+		printf("!!! The yaffs2 filesystem image"
+			" has invalid tag information.\n");
+		goto fail1;
+	}
+
+	if (hinfc_yaff_ver != yaffs_yaff_ver) {
+		printf("!!! The yaffs2 filesystem "
+			"or mkyaffs2image for cpu ver(0x%X) "
+			"But your demo board cpu ver(0x%X).\n",
+			tags->nandip, nand_ip_version);
+		goto fail1;
+	}
 	return 0;
 
 fail:
@@ -91,6 +225,12 @@ fail:
 		"make sure your yaffs2 filesystem image pagesize and ecctype is consistent with hardware config.\n");
 	printf("Current hardware config, pagesize:%d, ecctype:%s\n", 
 		writesize, ecctype_str[ecctype & 0xF]);
+
+	return -1;
+fail1:
+	printf("1. Confirm your yaffs2 filesystem image version.\n"
+			"2. Update your mkyaffs2image tool,"
+			" remake yaffs2 filesystem image.\n");
 
 	return -1;
 }

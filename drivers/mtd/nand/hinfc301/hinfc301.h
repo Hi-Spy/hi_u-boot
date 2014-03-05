@@ -12,12 +12,14 @@
 
 #ifndef CONFIG_HINFC301_REG_BASE_ADDRESS
 #  define CONFIG_HINFC301_REG_BASE_ADDRESS            (0x10000000)
-#  warning NOT config CONFIG_HINFC301_REG_BASE_ADDRESS, used default value, maybe invalid.
+#  warning NOT config CONFIG_HINFC301_REG_BASE_ADDRESS, \
+	used default value, maybe invalid.
 #endif /* CONFIG_HINFC301_REG_BASE_ADDRESS */
 
 #ifndef CONFIG_HINFC301_BUFFER_BASE_ADDRESS
 #  define CONFIG_HINFC301_BUFFER_BASE_ADDRESS         (0x50000000)
-#  warning NOT config CONFIG_HINFC301_BUFFER_BASE_ADDRESS, used default value, maybe invalid.
+#  warning NOT config CONFIG_HINFC301_BUFFER_BASE_ADDRESS, \
+	used default value, maybe invalid.
 #endif /* CONFIG_HINFC301_BUFFER_BASE_ADDRESS */
 
 #ifndef CONFIG_HINFC301_W_LATCH
@@ -34,7 +36,8 @@
 
 #ifndef CONFIG_HINFC301_MAX_CHIP
 #  define CONFIG_HINFC301_MAX_CHIP                    (1)
-#  warning NOT config CONFIG_HINFC301_MAX_CHIP, used default value, maybe invalid.
+#  warning NOT config CONFIG_HINFC301_MAX_CHIP, \
+	used default value, maybe invalid.
 #endif /* CONFIG_HINFC301_MAX_CHIP */
 
 /*****************************************************************************/
@@ -122,10 +125,10 @@
 #define _4K                                 (4096)
 #define _8K                                 (8192)
 
+
 /*****************************************************************************/
 
-enum ecc_type
-{
+enum ecc_type {
 	et_ecc_none    = 0x00,
 	et_ecc_1bit    = 0x01,
 	et_ecc_4bytes  = 0x02,
@@ -133,8 +136,7 @@ enum ecc_type
 	et_ecc_24bit1k = 0x04,
 };
 /*****************************************************************************/
-enum page_type
-{
+enum page_type {
 	pt_pagesize_512   = 0x00,
 	pt_pagesize_2K    = 0x01,
 	pt_pagesize_4K    = 0x02,
@@ -142,8 +144,7 @@ enum page_type
 };
 /*****************************************************************************/
 
-struct page_page_ecc_info
-{
+struct page_page_ecc_info {
 	enum page_type pagetype;
 	enum ecc_type  ecctype;
 	unsigned int oobsize;
@@ -151,8 +152,7 @@ struct page_page_ecc_info
 };
 /*****************************************************************************/
 
-struct hinfc_host
-{
+struct hinfc_host {
 	struct nand_chip *chip;
 	struct mtd_info  *mtd;
 	void __iomem *iobase;
@@ -182,6 +182,9 @@ struct hinfc_host
 
 	unsigned int uc_er;
 };
+
+#include "hinfc_common.h"
+
 /*****************************************************************************/
 
 #define hinfc_read(_host, _reg) \
@@ -192,9 +195,9 @@ struct hinfc_host
 
 /*****************************************************************************/
 
-#define DBG_BUG(fmt, args...) do{\
-	printk("%s(%d): !!! BUG " fmt, __FILE__, __LINE__, ##args); \
-	while(1); \
+#define DBG_BUG(fmt, args...) do {\
+	printk(KERN_INFO "%s(%d): !!! BUG " fmt, __FILE__, __LINE__, ##args); \
+	asm("b ."); \
 } while (0)
 
 /*****************************************************************************/
@@ -202,10 +205,12 @@ struct hinfc_host
 #define GET_PAGE_INDEX(host) \
 	((host->addr_value[0] >> 16) | (host->addr_value[1] << 16))
 
-#if !(defined(CONFIG_HINFC301_DBG_NAND_PROC_FILE) || defined(CONFIG_HINFC301_DBG_NAND_EC_NOTICE))
+#if !(defined(CONFIG_HINFC301_DBG_NAND_PROC_FILE) \
+		|| defined(CONFIG_HINFC301_DBG_NAND_EC_NOTICE))
 #  define dbg_nand_ec_notice(_p0)
 #  define dbg_nand_ec_init()
-#endif /* !(defined(CONFIG_HINFC301_DBG_NAND_PROC_FILE) || defined(CONFIG_HINFC301_DBG_NAND_EC_NOTICE)) */
+#endif /* !(defined(CONFIG_HINFC301_DBG_NAND_PROC_FILE)
+	  || defined(CONFIG_HINFC301_DBG_NAND_EC_NOTICE)) */
 
 #if !defined(CONFIG_HINFC301_DBG_NAND_PROC_FILE)
 #  define dbg_nand_proc_save_logs(_p0, _p1)

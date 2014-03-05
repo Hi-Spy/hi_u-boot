@@ -67,4 +67,10 @@ void	udelay_masked		(unsigned long usec);
 /* cpu/.../timer.c */
 int	timer_init		(void);
 
+long long get_chipid(void);
+unsigned int get_max_ddr_size(void);
+void set_slave_entry(unsigned int slave_entry);
+int insert_ddr_layout(unsigned int start, unsigned int end, char *name);
+void show_ddr_layout(void);
+unsigned int get_ddr_free(unsigned int *size, unsigned int align);
 #endif	/* _U_BOOT_ARM_H_ */

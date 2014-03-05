@@ -554,8 +554,8 @@ struct platform_nand_chip *get_platform_nandchip(struct mtd_info *mtd)
 static inline char *get_ecctype_str(int ecctype)
 {
 	static char *ecctype_string[] = {
-		"None", "1bit", "4Bytes", "8Bytes", "24bits/1K", 
-		"unknown", "unknown", "unknown"};
+		"None", "1bit/512Byte", "4bits/512Byte", "8bits/512Byte",
+		"24bits/1K", "40bits/1K", "unknown", "unknown"};
 	return ecctype_string[(ecctype & 0x0F)];
 }
 

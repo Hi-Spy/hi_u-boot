@@ -1667,6 +1667,9 @@ static char ohci_inited;
 #ifdef CONFIG_HI3520D
 #include "hiusb-3520d.c"
 #endif
+#ifdef CONFIG_HI3535
+#include "hiusb-3535.c"
+#endif
 
 int usb_lowlevel_init(void)
 {

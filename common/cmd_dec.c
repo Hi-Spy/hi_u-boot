@@ -35,6 +35,9 @@
 #include <godarm_vo.h>
 #endif
 
+#ifdef CONFIG_HI3535
+#include <hi3535_vo.h>
+#endif
 #ifdef CONFIG_HI3520D
 #include <hi3520d_vo.h>
 #endif

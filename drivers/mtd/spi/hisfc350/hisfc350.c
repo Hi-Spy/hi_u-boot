@@ -50,6 +50,10 @@ extern struct spi_info hisfc350_spi_info_table[];
 #  include "hisfc350_hi3520d.c"
 #endif
 
+#ifdef CONFIG_HI3535
+#  include "hisfc350_hi3535.c"
+#endif
+
 #ifndef GET_SFC_ADDR_MODE
 #define GET_SFC_ADDR_MODE  (0)
 #endif
@@ -431,7 +435,6 @@ static int hisfc350_dma_write(struct spi_flash *spiflash, u32 to, size_t len,
 	struct hisfc_host *host = SPIFLASH_TO_HOST(spiflash);
 	struct hisfc_spi *spi = host->spi;
 
-
 	if ((to + len) > spiflash->size) {
 		DBG_MSG("write data out of range.\n");
 		return -EINVAL;
@@ -541,7 +544,6 @@ static int hisfc350_reg_write_buf(struct hisfc_host *host,
 	return 0;
 }
 
-
 /*****************************************************************************/
 static int hisfc350_reg_write(struct spi_flash *spiflash, u32 to, size_t len,
 	const void *buf)
@@ -620,7 +622,6 @@ static int hisfc350_reg_erase(struct spi_flash *spiflash, u32 offset,
 	struct hisfc_host *host = SPIFLASH_TO_HOST(spiflash);
 	struct hisfc_spi *spi = host->spi;
 
-
 	if (offset + length > spiflash->size) {
 		DBG_MSG("erase area out of range of mtd.\n");
 		return -EINVAL;
@@ -662,7 +663,6 @@ static int hisfc350_bus_read(struct spi_flash *spiflash, u32 from,
 	unsigned char *ptr = buf;
 	struct hisfc_host *host = SPIFLASH_TO_HOST(spiflash);
 	struct hisfc_spi *spi = host->spi;
-
 
 	if ((from + len) > spiflash->size) {
 		DBG_MSG("read area out of range.\n");
@@ -817,7 +817,6 @@ static int hisfc350_spi_probe(struct hisfc_host *host)
 				HISFC350_SUPPORT_MAX_DUMMY, READ);
 			hisfc350_map_iftype_and_clock(spi);
 
-
 			spi->driver->qe_enable(spi);
 
 			spi_search_rw(spiinfo, spi->read,
@@ -845,17 +844,16 @@ static int hisfc350_spi_probe(struct hisfc_host *host)
 
 			spi->iobase = (char *)host->iobase + total;
 
-
-			/* auto check sfc_addr_mode 3byte or 4 byte */
+			/* auto check sfc_addr_mode 3 bytes or 4 bytes */
 			start_up_mode = GET_SFC_ADDR_MODE;
 
 			if (start_up_mode == THREE_BYTE_ADDR_BOOT) {
 				if (DEBUG)
-					printf("start_up_mode is 3bite\n");
+					printf("start up mode is 3 bytes\n");
 				spi->driver->entry_4addr(spi, TRUE);
 			} else {
 				if (DEBUG)
-					printf("start_up_mode is 4bite\n");
+					printf("start up mode is 4 bytes\n");
 			}
 
 			printf("Spi(cs%d): ", spi->chipselect);
@@ -948,7 +946,6 @@ static void hisfc_probe_spi_size(struct hisfc_host *host,
 
 	for (++spi; ix < host->num_chip; ix++, spi++)
 		total += spi->chipsize;
-
 
 	spiflash->size = total;
 	host->erasesize = erasesize;

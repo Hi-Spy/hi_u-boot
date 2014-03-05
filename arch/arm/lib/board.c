@@ -91,6 +91,9 @@ extern void rtl8019_get_enetaddr (uchar * addr);
 #ifdef CONFIG_GENERIC_MMC
 extern int mmc_flash_init(void);
 #endif
+#ifdef CONFIG_DDR_TRAINING_V300
+extern int check_ddr_training(void);
+#endif /* CONFIG_DDR_TRAINING_V300 */
 
 /************************************************************************
  * Coloured LED functionality
@@ -161,6 +164,7 @@ static int display_banner (void)
  * gives a simple yet clear indication which part of the
  * initialization if failing.
  */
+#if 0
 static int display_dram_config (void)
 {
 	int i;
@@ -184,7 +188,7 @@ static int display_dram_config (void)
 
 	return (0);
 }
-
+#endif
 #ifndef CONFIG_SYS_NO_FLASH
 static void display_flash_config (ulong size)
 {
@@ -453,8 +457,11 @@ extern void davinci_eth_set_mac_addr (const u_int8_t *addr);
 	extern void download_boot(const int (*handle)(void));
 	download_boot(NULL);
 #endif
+#ifdef CONFIG_DDR_TRAINING_V300
+	check_ddr_training();
+#endif /* CONFIG_DDR_TRAINING_V300 */
 	product_control();
-	
+
 	/* main_loop() can return to retry autoboot, if so just run it again. */
 	for (;;) {
 		main_loop ();

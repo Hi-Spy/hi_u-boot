@@ -613,6 +613,12 @@ void	invalidate_dcache_range(unsigned long start, unsigned long stop);
 unsigned long long get_ticks(void);
 void	wait_ticks    (unsigned long);
 
+#ifndef DDR_DBG_BUG
+#  define DDR_DBG_BUG(_p) do {\
+		printf("%s(%d): [BUG] ", __FILE__, __LINE__); \
+		printf _p; \
+} while (0)
+#endif
 /* arch/$(ARCH)/lib/time.c */
 void	__udelay      (unsigned long);
 ulong	usec2ticks    (unsigned long usec);
@@ -732,6 +738,7 @@ int cpu_release(int nr, int argc, char *argv[]);
 #define BOOT_MEDIA_EMMC           (4)
 /* get uboot start media. */
 int get_boot_media(void);
+unsigned int get_ddr_size(void);
 
 #endif /* __ASSEMBLY__ */
 

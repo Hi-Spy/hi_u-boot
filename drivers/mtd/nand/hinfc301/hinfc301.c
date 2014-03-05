@@ -23,12 +23,12 @@ extern void hinfc301_controller_enable(struct hinfc_host *host, int enable);
 
 extern void nand_spl_ids_register(void);
 
-extern int (*nand_base_oob_resize)(struct mtd_info *mtd, 
+extern int (*nand_base_oob_resize)(struct mtd_info *mtd,
 	struct nand_chip *chip, char *args);
 
 unsigned int nand_ip_version = 0x0301;
 
-static struct hinfc_host *host = NULL;
+static struct hinfc_host *host;
 
 /*****************************************************************************/
 
@@ -67,20 +67,20 @@ static void hinfc301_dma_transfer(struct hinfc_host *host, int todev)
 	hinfc_write(host, host->dma_buffer, HINFC301_DMA_ADDR_DATA);
 	hinfc_write(host, host->dma_oob, HINFC301_DMA_ADDR_OOB);
 
-	if (host->ecctype == et_ecc_none)
-	{
+	if (host->ecctype == et_ecc_none) {
 		hinfc_write(host,
-			((host->oobsize & HINFC301_DMA_LEN_OOB_MASK) << HINFC301_DMA_LEN_OOB_SHIFT),
+			((host->oobsize & HINFC301_DMA_LEN_OOB_MASK)
+			<< HINFC301_DMA_LEN_OOB_SHIFT),
 			HINFC301_DMA_LEN);
 
 		hinfc_write(host,
 			HINFC301_DMA_PARA_DATA_RW_EN
 			| HINFC301_DMA_PARA_OOB_RW_EN
-			| ((host->n24bit_ext_len & HINFC301_DMA_PARA_EXT_LEN_MASK) << HINFC301_DMA_PARA_EXT_LEN_SHIFT),
+			| ((host->n24bit_ext_len
+			& HINFC301_DMA_PARA_EXT_LEN_MASK)
+			<< HINFC301_DMA_PARA_EXT_LEN_SHIFT),
 			HINFC301_DMA_PARA);
-	}
-	else
-	{
+	} else {
 		hinfc_write(host,
 			HINFC301_DMA_PARA_DATA_RW_EN
 			| HINFC301_DMA_PARA_OOB_RW_EN
@@ -88,7 +88,9 @@ static void hinfc301_dma_transfer(struct hinfc_host *host, int todev)
 			| HINFC301_DMA_PARA_OOB_EDC_EN
 			| HINFC301_DMA_PARA_DATA_ECC_EN
 			| HINFC301_DMA_PARA_OOB_ECC_EN
-			| ((host->n24bit_ext_len & HINFC301_DMA_PARA_EXT_LEN_MASK) << HINFC301_DMA_PARA_EXT_LEN_SHIFT),
+			| ((host->n24bit_ext_len
+			& HINFC301_DMA_PARA_EXT_LEN_MASK)
+			<< HINFC301_DMA_PARA_EXT_LEN_SHIFT),
 			HINFC301_DMA_PARA);
 	}
 
@@ -98,15 +100,19 @@ static void hinfc301_dma_transfer(struct hinfc_host *host, int todev)
 		| HINFC301_DMA_CTRL_BURST16_EN
 		| HINFC301_DMA_CTRL_DATA_AREA_EN
 		| HINFC301_DMA_CTRL_OOB_AREA_EN
-		| ((host->addr_cycle == 4 ? 1 : 0) << HINFC301_DMA_CTRL_ADDR_NUM_SHIFT)
-		| ((host->chipselect & HINFC301_DMA_CTRL_CS_MASK) << HINFC301_DMA_CTRL_CS_SHIFT));
+		| ((host->addr_cycle == 4 ? 1 : 0)
+		<< HINFC301_DMA_CTRL_ADDR_NUM_SHIFT)
+		| ((host->chipselect
+		& HINFC301_DMA_CTRL_CS_MASK)
+		<< HINFC301_DMA_CTRL_CS_SHIFT));
 
 	if (todev)
 		reg_val |= HINFC301_DMA_CTRL_WE;
 
 	hinfc_write(host, reg_val, HINFC301_DMA_CTRL);
 
-	while ((hinfc_read(host, HINFC301_DMA_CTRL)) & HINFC301_DMA_CTRL_DMA_START)
+	while ((hinfc_read(host, HINFC301_DMA_CTRL))
+			& HINFC301_DMA_CTRL_DMA_START)
 		;
 }
 /*****************************************************************************/
@@ -116,41 +122,39 @@ static void hinfc301_cmd_ctrl(struct mtd_info *mtd, int dat, unsigned int ctrl)
 	struct nand_chip *chip = mtd->priv;
 	struct hinfc_host *host = chip->priv;
 
-	if (ctrl & NAND_ALE)
-	{
+	if (ctrl & NAND_ALE) {
 		unsigned int addr_value = 0;
 		unsigned int addr_offset = 0;
 
-		if (ctrl & NAND_CTRL_CHANGE)
-		{
+		if (ctrl & NAND_CTRL_CHANGE) {
 			host->addr_cycle = 0x0;
 			host->addr_value[0] = 0x0;
 			host->addr_value[1] = 0x0;
 		}
 		addr_offset =  host->addr_cycle << 3;
 
-		if (host->addr_cycle >= HINFC301_ADDR_CYCLE_MASK)
-		{
-			addr_offset = (host->addr_cycle - HINFC301_ADDR_CYCLE_MASK) << 3;
+		if (host->addr_cycle >= HINFC301_ADDR_CYCLE_MASK) {
+			addr_offset = (host->addr_cycle
+					- HINFC301_ADDR_CYCLE_MASK) << 3;
 			addr_value = 1;
 		}
 
 		host->addr_value[addr_value] |= ((dat & 0xff) << addr_offset);
 
-		host->addr_cycle ++;
+		host->addr_cycle++;
 	}
 
-	if ((ctrl & NAND_CLE) && (ctrl & NAND_CTRL_CHANGE))
-	{
+	if ((ctrl & NAND_CLE) && (ctrl & NAND_CTRL_CHANGE)) {
 		host->command = dat & 0xff;
-		switch (host->command)
-		{
+		switch (host->command) {
 		case NAND_CMD_PAGEPROG:
 
 			hinfc_write(host, host->NFC_CON, HINFC301_CON);
-			hinfc_write(host, host->addr_value[0] & 0xffff0000, HINFC301_ADDRL);
+			hinfc_write(host, host->addr_value[0]
+					& 0xffff0000, HINFC301_ADDRL);
 			hinfc_write(host, host->addr_value[1], HINFC301_ADDRH);
-			hinfc_write(host, NAND_CMD_PAGEPROG << 8 | NAND_CMD_SEQIN, HINFC301_CMD);
+			hinfc_write(host, NAND_CMD_PAGEPROG
+					<< 8 | NAND_CMD_SEQIN, HINFC301_CMD);
 
 			hinfc301_dma_transfer(host, 1);
 
@@ -160,15 +164,19 @@ static void hinfc301_cmd_ctrl(struct mtd_info *mtd, int dat, unsigned int ctrl)
 
 			hinfc_write(host, HINFC301_INTCLR_UE, HINFC301_INTCLR);
 			hinfc_write(host, host->NFC_CON, HINFC301_CON);
-			hinfc_write(host, host->addr_value[0] & 0xffff0000, HINFC301_ADDRL);
+			hinfc_write(host, host->addr_value[0]
+					& 0xffff0000, HINFC301_ADDRL);
 			hinfc_write(host, host->addr_value[1], HINFC301_ADDRH);
-			hinfc_write(host, NAND_CMD_READSTART << 8 | NAND_CMD_READ0, HINFC301_CMD);
+			hinfc_write(host, NAND_CMD_READSTART
+					<< 8 | NAND_CMD_READ0, HINFC301_CMD);
 
 			hinfc_write(host, 0, HINFC301_LOG_READ_ADDR);
-			hinfc_write(host, (host->pagesize + host->oobsize), HINFC301_LOG_READ_LEN);
+			hinfc_write(host, (host->pagesize + host->oobsize),
+					HINFC301_LOG_READ_LEN);
 
 			hinfc301_dma_transfer(host, 0);
-			host->uc_er = ((hinfc_read(host, HINFC301_INTS) & HINFC301_INTS_UE) ? 1 : 0);
+			host->uc_er = ((hinfc_read(host, HINFC301_INTS)
+						& HINFC301_INTS_UE) ? 1 : 0);
 			host->uc_er = 0;
 
 			break;
@@ -176,15 +184,20 @@ static void hinfc301_cmd_ctrl(struct mtd_info *mtd, int dat, unsigned int ctrl)
 		case NAND_CMD_ERASE2:
 			hinfc_write(host, host->NFC_CON_ECC_NONE, HINFC301_CON);
 			hinfc_write(host, host->addr_value[0], HINFC301_ADDRL);
-			hinfc_write(host, (NAND_CMD_ERASE2 << 8) | NAND_CMD_ERASE1, HINFC301_CMD);
+			hinfc_write(host, (NAND_CMD_ERASE2 << 8)
+					| NAND_CMD_ERASE1, HINFC301_CMD);
 
 			hinfc_write(host,
 				HINFC301_OP_WAIT_READY_EN
 				| HINFC301_OP_CMD2_EN
 				| HINFC301_OP_CMD1_EN
 				| HINFC301_OP_ADDR_EN
-				| ((host->chipselect & HINFC301_OP_NF_CS_MASK) << HINFC301_OP_NF_CS_SHIFT)
-				| ((host->addr_cycle & HINFC301_OP_ADDR_CYCLE_MASK) << HINFC301_OP_ADDR_CYCLE_SHIFT),
+				| ((host->chipselect
+				& HINFC301_OP_NF_CS_MASK)
+				<< HINFC301_OP_NF_CS_SHIFT)
+				| ((host->addr_cycle
+				& HINFC301_OP_ADDR_CYCLE_MASK)
+				<< HINFC301_OP_ADDR_CYCLE_SHIFT),
 				HINFC301_OP);
 
 			while ((hinfc_read(host, HINFC301_STATUS) & 0x1) == 0x0)
@@ -205,7 +218,8 @@ static void hinfc301_cmd_ctrl(struct mtd_info *mtd, int dat, unsigned int ctrl)
 				| HINFC301_OP_ADDR_EN
 				| HINFC301_OP_READ_DATA_EN
 				| HINFC301_OP_WAIT_READY_EN
-				| ((host->chipselect & HINFC301_OP_NF_CS_MASK) << HINFC301_OP_NF_CS_SHIFT)
+				| ((host->chipselect & HINFC301_OP_NF_CS_MASK)
+				<< HINFC301_OP_NF_CS_SHIFT)
 				| (1 << HINFC301_OP_ADDR_CYCLE_SHIFT),
 				HINFC301_OP);
 
@@ -224,7 +238,8 @@ static void hinfc301_cmd_ctrl(struct mtd_info *mtd, int dat, unsigned int ctrl)
 				HINFC301_OP_CMD1_EN
 				| HINFC301_OP_READ_DATA_EN
 				| HINFC301_OP_WAIT_READY_EN
-				| ((host->chipselect & HINFC301_OP_NF_CS_MASK) << HINFC301_OP_NF_CS_SHIFT),
+				| ((host->chipselect & HINFC301_OP_NF_CS_MASK)
+				<< HINFC301_OP_NF_CS_SHIFT),
 				HINFC301_OP);
 
 			while ((hinfc_read(host, HINFC301_STATUS) & 0x1) == 0x0)
@@ -242,7 +257,8 @@ static void hinfc301_cmd_ctrl(struct mtd_info *mtd, int dat, unsigned int ctrl)
 
 			hinfc_write(host,
 				(HINFC301_OP_CMD1_EN
-				| ((host->chipselect & HINFC301_OP_NF_CS_MASK) << HINFC301_OP_NF_CS_SHIFT)
+				| ((host->chipselect & HINFC301_OP_NF_CS_MASK)
+				<< HINFC301_OP_NF_CS_SHIFT)
 				| HINFC301_OP_WAIT_READY_EN),
 				HINFC301_OP);
 
@@ -251,7 +267,7 @@ static void hinfc301_cmd_ctrl(struct mtd_info *mtd, int dat, unsigned int ctrl)
 
 			break;
 
-		default :
+		default:
 			break;
 		}
 	}
@@ -261,12 +277,10 @@ static void hinfc301_cmd_ctrl(struct mtd_info *mtd, int dat, unsigned int ctrl)
 	 */
 	hinfc_write(host, host->NFC_CON, HINFC301_CON);
 
-	if ((dat == NAND_CMD_NONE) && host->addr_cycle)
-	{
+	if ((dat == NAND_CMD_NONE) && host->addr_cycle) {
 		if (host->command == NAND_CMD_SEQIN
 			|| host->command == NAND_CMD_READ0
-			|| host->command == NAND_CMD_READID)
-		{
+			|| host->command == NAND_CMD_READID) {
 			host->offset = 0x0;
 			host->column = (host->addr_value[0] & 0xffff);
 		}
@@ -290,9 +304,7 @@ static void hinfc301_select_chip(struct mtd_info *mtd, int chipselect)
 		return;
 
 	if (chipselect > CONFIG_HINFC301_MAX_CHIP)
-	{
 		DBG_BUG("invalid chipselect: %d\n", chipselect);
-	}
 
 	host->chipselect = chipselect;
 }
@@ -304,16 +316,12 @@ static uint8_t hinfc301_read_byte(struct mtd_info *mtd)
 	struct hinfc_host *host = chip->priv;
 
 	if (host->command == NAND_CMD_STATUS)
-	{
 		return readb(chip->IO_ADDR_R);
-	}
 
 	host->offset++;
 
 	if (host->command == NAND_CMD_READID)
-	{
 		return readb(chip->IO_ADDR_R + host->offset - 1);
-	}
 
 	return readb(host->buffer + host->column + host->offset - 1);
 }
@@ -329,7 +337,8 @@ static u16 hinfc301_read_word(struct mtd_info *mtd)
 }
 /*****************************************************************************/
 
-static void hinfc301_write_buf(struct mtd_info *mtd, const uint8_t *buf, int len)
+static void hinfc301_write_buf(struct mtd_info *mtd,
+		const uint8_t *buf, int len)
 {
 	struct nand_chip *chip = mtd->priv;
 	struct hinfc_host *host = chip->priv;
@@ -349,25 +358,21 @@ static void hinfc301_read_buf(struct mtd_info *mtd, uint8_t *buf, int len)
 }
 /*****************************************************************************/
 
-static struct nand_ecclayout nand_ecc_default =
-{
-	.oobfree = {{2, 30}}
+static struct nand_ecclayout nand_ecc_default = {
+	.oobfree = {{2, 30} }
 };
 
-static struct nand_ecclayout nand_ecc_2K_1bit =
-{
-	.oobfree = {{22, 30}}
+static struct nand_ecclayout nand_ecc_2K_1bit = {
+	.oobfree = {{22, 30} }
 };
-#ifdef CONFIG_HINFC301_HARDWARE_PAGESIZE_ECC 
-static struct nand_ecclayout nand_ecc_2K_4bytes =
-{
-	.oobfree = {{2, 22}}
+#ifdef CONFIG_HINFC301_HARDWARE_PAGESIZE_ECC
+static struct nand_ecclayout nand_ecc_2K_4bytes = {
+	.oobfree = {{2, 22} }
 };
 #endif /* CONFIG_HINFC301_HARDWARE_PAGESIZE_ECC */
 /*****************************************************************************/
 
-static struct page_page_ecc_info page_page_ecc_info[] =
-{
+static struct page_page_ecc_info page_page_ecc_info[] = {
 	{pt_pagesize_8K, et_ecc_24bit1k, 368, &nand_ecc_default},
 	{pt_pagesize_8K, et_ecc_none,    32,  &nand_ecc_default},
 
@@ -377,7 +382,7 @@ static struct page_page_ecc_info page_page_ecc_info[] =
 	{pt_pagesize_4K, et_ecc_none,    32,  &nand_ecc_default},
 
 	{pt_pagesize_2K, et_ecc_1bit,    64,  &nand_ecc_2K_1bit},
-	/* 
+	/*
 	 * 2k4bytes not support yaffs2 file system, it's not compatibility.
 	 * only hardward config mode allow support 2k4Bytes,
 	 */
@@ -386,7 +391,7 @@ static struct page_page_ecc_info page_page_ecc_info[] =
 #endif /* CONFIG_HINFC301_HARDWARE_PAGESIZE_ECC */
 	{pt_pagesize_2K, et_ecc_none,    32,  &nand_ecc_default},
 
-	{0,0,0,NULL},
+	{0, 0, 0, NULL},
 };
 /*****************************************************************************/
 /* used the best correct arithmetic. */
@@ -395,8 +400,7 @@ struct page_page_ecc_info *hinfc301_get_best_ecc(struct mtd_info *mtd)
 	struct page_page_ecc_info *best = NULL;
 	struct page_page_ecc_info *info = page_page_ecc_info;
 
-	for (; info->layout; info++)
-	{
+	for (; info->layout; info++) {
 		if (get_pagesize(info->pagetype) != mtd->writesize)
 			continue;
 
@@ -404,13 +408,10 @@ struct page_page_ecc_info *hinfc301_get_best_ecc(struct mtd_info *mtd)
 			continue;
 
 		if (!best || (best->ecctype < info->ecctype))
-		{
 			best = info;
-		}
 	}
 
-	if (!best)
-	{
+	if (!best) {
 		DBG_BUG("not support this pagesize(%d) and oobsize(%d).\n",
 			mtd->writesize, mtd->oobsize);
 	}
@@ -432,20 +433,18 @@ struct page_page_ecc_info *hinfc301_force_ecc
 	struct page_page_ecc_info *fit = NULL;
 	struct page_page_ecc_info *info = page_page_ecc_info;
 
-	for (; info->layout; info++)
-	{
+	for (; info->layout; info++) {
 		if (info->pagetype == pagetype
-			&& info->ecctype == ecctype)
-		{
+			&& info->ecctype == ecctype) {
 			fit = info;
 			break;
 		}
 	}
 
-	if (!fit)
-	{
+	if (!fit) {
 		nand_register_dump();
-		DBG_BUG("system not support this nand %s: pagesize:%s, ecctype:%s\n",
+		DBG_BUG("system not support this nand %s:"
+			"pagesize:%s, ecctype:%s\n",
 			cfgmsg,
 			get_pagesize_str(pagetype),
 			get_ecctype_str(ecctype));
@@ -454,8 +453,7 @@ struct page_page_ecc_info *hinfc301_force_ecc
 
 	pagesize = get_pagesize(pagetype);
 	if ((pagesize != mtd->writesize)
-		&& (pagesize > mtd->writesize || !allow_pagediv))
-	{
+		&& (pagesize > mtd->writesize || !allow_pagediv)) {
 		nand_register_dump();
 		DBG_BUG("%s is inconsistent, config pagesize %d, "
 			"but the nand chip pageszie is %d\n",
@@ -465,8 +463,7 @@ struct page_page_ecc_info *hinfc301_force_ecc
 		return NULL;
 	}
 
-	if (fit->oobsize > mtd->oobsize)
-	{
+	if (fit->oobsize > mtd->oobsize) {
 		DBG_BUG("%s is inconsistent, config %s require oobsize(%d), "
 			"but the nand chip oobsize is %d, littler than config require.\n",
 			cfgmsg, get_ecctype_str(ecctype),
@@ -479,8 +476,8 @@ struct page_page_ecc_info *hinfc301_force_ecc
 }
 /*****************************************************************************/
 
-static int hinfc301_ecc_probe(struct mtd_info *mtd, struct nand_chip *chip, char *args)
-{
+static int hinfc301_ecc_probe(struct mtd_info *mtd,
+		struct nand_chip *chip, char *args) {
 	char *start_type = "unknown";
 	struct page_page_ecc_info *best = NULL;
 	struct hinfc_host *host = chip->priv;
@@ -492,43 +489,56 @@ static int hinfc301_ecc_probe(struct mtd_info *mtd, struct nand_chip *chip, char
 
 #ifdef CONFIG_HINFC301_HARDWARE_PAGESIZE_ECC
 #  ifdef CONFIG_HINFC301_AUTO_PAGESIZE_ECC
-#  error you SHOULD NOT define CONFIG_HINFC301_AUTO_PAGESIZE_ECC and CONFIG_HINFC301_HARDWARE_PAGESIZE_ECC at the same time
+#  error you SHOULD NOT define CONFIG_HINFC301_AUTO_PAGESIZE_ECC \
+	and CONFIG_HINFC301_HARDWARE_PAGESIZE_ECC at the same time
 #  endif
 	best = hinfc301_force_ecc(mtd,
-		((host->NFC_CON >> HINFC301_CON_PAGEISZE_SHIFT) & HINFC301_CON_PAGESIZE_MASK),
-		((host->NFC_CON >> HINFC301_CON_ECCTYPE_SHIFT) & HINFC301_CON_ECCTYPE_MASK),
+		((host->NFC_CON >> HINFC301_CON_PAGEISZE_SHIFT)
+		& HINFC301_CON_PAGESIZE_MASK),
+		((host->NFC_CON >> HINFC301_CON_ECCTYPE_SHIFT)
+		& HINFC301_CON_ECCTYPE_MASK),
 		"hardware config", 0);
 	start_type = "Hardware";
 #endif /* CONFIG_HINFC301_HARDWARE_PAGESIZE_ECC */
 
 #ifdef CONFIG_HINFC301_PAGESIZE_AUTO_ECC_NONE
 #  ifdef CONFIG_HINFC301_AUTO_PAGESIZE_ECC
-#  error you SHOULD NOT define CONFIG_HINFC301_PAGESIZE_AUTO_ECC_NONE and CONFIG_HINFC301_AUTO_PAGESIZE_ECC at the same time
+#  error you SHOULD NOT define CONFIG_HINFC301_PAGESIZE_AUTO_ECC_NONE \
+	and CONFIG_HINFC301_AUTO_PAGESIZE_ECC at the same time
 #  endif
 #  ifdef CONFIG_HINFC301_HARDWARE_PAGESIZE_ECC
-#  error you SHOULD NOT define CONFIG_HINFC301_PAGESIZE_AUTO_ECC_NONE and CONFIG_HINFC301_HARDWARE_PAGESIZE_ECC at the same time
+#  error you SHOULD NOT define CONFIG_HINFC301_PAGESIZE_AUTO_ECC_NONE \
+	and CONFIG_HINFC301_HARDWARE_PAGESIZE_ECC at the same time
 #  endif
 
 	{
 		int pagetype;
 
-		switch (mtd->writesize)
-		{
-		case _512B: pagetype = pt_pagesize_512; break;
-		case _2K:   pagetype = pt_pagesize_2K;  break;
-		case _4K:   pagetype = pt_pagesize_4K;  break;
-		case _8K:   pagetype = pt_pagesize_8K;  break;
-		default:    pagetype = pt_pagesize_2K;  break;
+		switch (mtd->writesize) {
+		case _512B:
+			pagetype = pt_pagesize_512;
+			break;
+		case _2K:
+			pagetype = pt_pagesize_2K;
+			break;
+		case _4K:
+			pagetype = pt_pagesize_4K;
+			break;
+		case _8K:
+			pagetype = pt_pagesize_8K;
+			break;
+		default:
+			pagetype = pt_pagesize_2K;
+			break;
 		}
-		best = hinfc301_force_ecc(mtd, pagetype, et_ecc_none, "force config", 0);
+		best = hinfc301_force_ecc(mtd, pagetype,
+				et_ecc_none, "force config", 0);
 		start_type = "AutoForce";
 	}
 #endif /* CONFIG_HINFC301_PAGESIZE_AUTO_ECC_NONE */
 
 	if (!best)
-	{
 		DBG_BUG("Please select nand flash pagesize and ecctype!\n");
-	}
 
 	if (best->ecctype != et_ecc_none)
 		mtd->oobsize = best->oobsize;
@@ -540,51 +550,46 @@ static int hinfc301_ecc_probe(struct mtd_info *mtd, struct nand_chip *chip, char
 
 	*(int *)args = host->ecctype;
 
-	if (host->ecctype == et_ecc_24bit1k)
-	{
+	if (host->ecctype == et_ecc_24bit1k) {
 		if (host->pagesize == _4K)
-		{
 			host->n24bit_ext_len = 0x03; /* 8bytes; */
-		}
 		else if (host->pagesize == _8K)
-		{
 			host->n24bit_ext_len = 0x01; /* 4bytes; */
-		}
 	}
 	host->dma_oob = host->dma_buffer + host->pagesize;
 
 	host->NFC_CON  = (HINFC301_CON_OP_MODE_NORMAL
-		| ((best->pagetype & HINFC301_CON_PAGESIZE_MASK) << HINFC301_CON_PAGEISZE_SHIFT)
+		| ((best->pagetype & HINFC301_CON_PAGESIZE_MASK)
+		<< HINFC301_CON_PAGEISZE_SHIFT)
 		| HINFC301_CON_READY_BUSY_SEL
-		| ((best->ecctype & HINFC301_CON_ECCTYPE_MASK) << HINFC301_CON_ECCTYPE_SHIFT));
+		| ((best->ecctype & HINFC301_CON_ECCTYPE_MASK)
+		<< HINFC301_CON_ECCTYPE_SHIFT));
 
 	host->NFC_CON_ECC_NONE  = (HINFC301_CON_OP_MODE_NORMAL
-		| ((best->pagetype & HINFC301_CON_PAGESIZE_MASK) << HINFC301_CON_PAGEISZE_SHIFT)
+		| ((best->pagetype & HINFC301_CON_PAGESIZE_MASK)
+		<< HINFC301_CON_PAGEISZE_SHIFT)
 		| HINFC301_CON_READY_BUSY_SEL);
 
 	if (mtd->writesize > NAND_MAX_PAGESIZE
-		|| mtd->oobsize > NAND_MAX_OOBSIZE)
-	{
+		|| mtd->oobsize > NAND_MAX_OOBSIZE) {
 		DBG_BUG("kernel not support this NAND. "
 			"please increase NAND_MAX_PAGESIZE and NAND_MAX_OOBSIZE.\n");
 	}
 
-	if (mtd->writesize != host->pagesize)
-	{
+	if (mtd->writesize != host->pagesize) {
 		unsigned int shift = 0;
 		unsigned int writesize = mtd->writesize;
-		while (writesize > host->pagesize)
-		{
+		while (writesize > host->pagesize) {
 			writesize >>= 1;
 			shift++;
 		}
 		chip->chipsize = chip->chipsize >> shift;
 		mtd->erasesize = mtd->erasesize >> shift;
 		mtd->writesize = host->pagesize;
-		printk("Nand divide into 1/%u\n", (1 << shift));
+		printk(KERN_INFO "Nand divide into 1/%u\n", (1 << shift));
 	}
 
-	printk("Nand(%s): ", start_type);
+	printk(KERN_INFO "Nand(%s): ", start_type);
 	return 0;
 }
 /*****************************************************************************/
@@ -627,7 +632,9 @@ static int hinfc301_nand_init(struct hinfc_host *host, struct nand_chip *chip)
 	memset(host->buffer, 0xff, (NAND_MAX_PAGESIZE + NAND_MAX_OOBSIZE));
 
 	hinfc_write(host,
-		SET_HINFC301_PWIDTH(CONFIG_HINFC301_W_LATCH, CONFIG_HINFC301_R_LATCH, CONFIG_HINFC301_RW_LATCH),
+		SET_HINFC301_PWIDTH(CONFIG_HINFC301_W_LATCH,
+		CONFIG_HINFC301_R_LATCH,
+		CONFIG_HINFC301_RW_LATCH),
 		HINFC301_PWIDTH);
 
 	nand_base_oob_resize = hinfc301_ecc_probe;
@@ -642,20 +649,19 @@ int board_nand_init(struct nand_chip *chip)
 		return -1;
 
 	host = kmalloc(sizeof(struct hinfc_host), GFP_KERNEL);
-	if (!host)
-	{
-		printk("failed to allocate device structure.\n");
+	if (!host) {
+		printk(KERN_INFO "failed to allocate device structure.\n");
 		return -ENOMEM;
 	}
 	memset((char *)host, 0, sizeof(struct hinfc_host));
 
 	host->iobase = (void __iomem *)CONFIG_HINFC301_REG_BASE_ADDRESS;
-	chip->IO_ADDR_R = chip->IO_ADDR_W = (void *)CONFIG_HINFC301_BUFFER_BASE_ADDRESS;
+	chip->IO_ADDR_R = (void *)CONFIG_HINFC301_BUFFER_BASE_ADDRESS;
+	chip->IO_ADDR_W = (void *)CONFIG_HINFC301_BUFFER_BASE_ADDRESS;
 	hinfc301_controller_enable(host, 1);
 
-	if (hinfc301_nand_init(host, chip))
-	{
-		printk("failed to allocate device buffer.\n");
+	if (hinfc301_nand_init(host, chip)) {
+		printk(KERN_INFO "failed to allocate device buffer.\n");
 		return -ENOMEM;
 	}
 
@@ -667,8 +673,7 @@ int board_nand_init(struct nand_chip *chip)
 
 int nand_get_ecctype(void)
 {
-	if (!host)
-	{
+	if (!host) {
 		printf("nand flash uninitialized.\n");
 		return -1;
 	}

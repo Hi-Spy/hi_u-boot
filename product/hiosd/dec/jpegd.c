@@ -86,7 +86,7 @@ int load_jpeg(void)
     	memcpy(hilogo, (char*)u,jpeg_size);
     	if (*(volatile unsigned char *)hilogo != 0xFF || *(volatile unsigned char *)(hilogo+1) != 0xD8)
     	{
-    		printf("addr:%#x,size:%ld,logoaddr:%#lx,:%2x,%2x\n",hilogo,jpeg_size,u
+    		printf("addr:%#x,size:%ld,logoaddr:%#lx,:%2x,%2x\n",(unsigned int)(void *)hilogo,jpeg_size,u
     			,*(volatile unsigned char *)hilogo,*(volatile unsigned char *)(hilogo+1));
     	    return -1;
     	}

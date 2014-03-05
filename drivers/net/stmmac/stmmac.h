@@ -39,7 +39,7 @@
 #define STMMAC_SPD_1000M	(1 << 4)
 
 #define GMAC0_PORT 0
-#ifdef CONFIG_GODNET
+#ifndef STMMAC_SINGLE_MAC
 #define GMAC1_PORT 1
 #endif
 

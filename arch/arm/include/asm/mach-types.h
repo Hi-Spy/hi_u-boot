@@ -2870,6 +2870,7 @@ extern unsigned int __machine_arch_type;
 #define MACH_TYPE_GODARM	       8000
 #define MACH_TYPE_HI3518	       8000
 #define MACH_TYPE_HI3520D	       8000
+#define MACH_TYPE_HI3535	       8000
 
 #ifdef CONFIG_ARCH_EBSA110
 # ifdef machine_arch_type

@@ -173,10 +173,13 @@ COBJS-$(CONFIG_LYNXKDI) += lynxkdi.o
 COBJS-$(CONFIG_MODEM_SUPPORT) += modem.o
 COBJS-$(CONFIG_UPDATE_TFTP) += update.o
 COBJS-$(CONFIG_USB_KEYBOARD) += usb_kbd.o
+AOBJS-$(CONFIG_DDR_TRAINING_V300) += ddr_training_entry.o
+COBJS-$(CONFIG_DDR_TRAINING_V300) += cmd_ddr_training_v300.o
+COBJS-$(CONFIG_DDR_TRAINING_HI3535)  += hi3535_ddr_training_printf.o
 
 sinclude Makefile-osd
 
-
+AOBJS	:= $(sort $(AOBJS-y))
 COBJS	:= $(sort $(COBJS-y))
 SRCS	:= $(AOBJS:.o=.S) $(COBJS:.o=.c)
 OBJS	:= $(addprefix $(obj),$(AOBJS) $(COBJS))

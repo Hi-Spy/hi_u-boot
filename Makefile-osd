@@ -12,6 +12,11 @@ LIBS += ./product/hiosd/hdmi/godarm/libhdmi.a
 LIBS += ./product/hiosd/dec/libjpegd.a
 endif
 
+ifeq ($(CONFIG_PRODUCTNAME), "hi3535")
+LIBS += ./product/hiosd/vo/hi3535/libvo.a
+LIBS += ./product/hiosd/hdmi/hi3535/libhdmi.a
+LIBS += ./product/hiosd/dec/libjpegd.a
+endif
 ifeq ($(CONFIG_PRODUCTNAME), "hi3520d")
 LIBS += ./product/hiosd/vo/hi3520d/libvo.a
 LIBS += ./product/hiosd/hdmi/hi3520d/libhdmi.a

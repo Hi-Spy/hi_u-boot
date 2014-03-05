@@ -32,30 +32,6 @@
  *
  */
 
-/* XXX U-BOOT XXX */
-#if 0
-#include <linux/module.h>
-#include <linux/delay.h>
-#include <linux/errno.h>
-#include <linux/err.h>
-#include <linux/sched.h>
-#include <linux/slab.h>
-#include <linux/types.h>
-#include <linux/mtd/mtd.h>
-#include <linux/mtd/nand.h>
-#include <linux/mtd/nand_ecc.h>
-#include <linux/mtd/compatmac.h>
-#include <linux/interrupt.h>
-#include <linux/bitops.h>
-#include <linux/leds.h>
-#include <asm/io.h>
-
-#ifdef CONFIG_MTD_PARTITIONS
-#include <linux/mtd/partitions.h>
-#endif
-
-#endif
-
 #include <common.h>
 
 #define ENOTSUPP	524	/* Operation is not supported */
@@ -78,6 +54,9 @@
 #ifdef CONFIG_JFFS2_NAND
 #include <jffs2/jffs2.h>
 #endif
+
+#include "hinfc_common.h"
+
 
 /*
  * CONFIG_SYS_NAND_RESET_CNT is used as a timeout mechanism when resetting
@@ -2603,7 +2582,7 @@ static void nand_set_defaults(struct nand_chip *chip, int busw)
 struct nand_flash_dev *(*nand_base_get_special_flash_type)(struct mtd_info *mtd,
 	struct nand_chip *chip, unsigned char byte[8]) = NULL;
 
-int (*nand_base_oob_resize)(struct mtd_info *mtd, 
+int (*nand_base_oob_resize)(struct mtd_info *mtd,
 	struct nand_chip *chip, char *args) = NULL;
 
 static struct mtd_info_ex nand_info_ex = {.type = 0, };
@@ -2623,8 +2602,10 @@ static struct nand_flash_dev *nand_get_flash_type(struct mtd_info *mtd,
 	struct nand_flash_dev *type = NULL;
 	int i, dev_id, maf_idx;
 	int tmp_id, tmp_manf;
+#ifndef CONFIG_NAND_FLASH_HINFC504
 	int ecctype = -1;
-	unsigned char byte[8] = {0};
+#endif
+	struct nand_flash_dev_ex flash_dev_ex = {{0}, 0};
 
 	/* Select the device */
 	chip->select_chip(mtd, 0);
@@ -2656,175 +2637,209 @@ static struct nand_flash_dev *nand_get_flash_type(struct mtd_info *mtd,
 	tmp_id = chip->read_byte(mtd);
 
 	if (tmp_manf != *maf_id || tmp_id != dev_id) {
-		printk(KERN_INFO "%s: second ID read did not match "
-		       "%02x,%02x against %02x,%02x\n", __func__,
-		       *maf_id, dev_id, tmp_manf, tmp_id);
+		printf("%s: second ID read did not match "
+				"%02x,%02x against %02x,%02x\n", __func__,
+				*maf_id, dev_id, tmp_manf, tmp_id);
 		return ERR_PTR(-ENODEV);
 	}
 
 	/*
-	 * some nand, the id bytes signification is nonstandard 
+	 * some nand, the id bytes signification is nonstandard
 	 * with the linux kernel.
 	 */
-	byte[0] = tmp_manf;
-	byte[1] = tmp_id;
-	if (nand_base_get_special_flash_type 
-		&& ((type = nand_base_get_special_flash_type(mtd, chip, byte)) != NULL))
-	{
+	flash_dev_ex.ids[0] = tmp_manf;
+	flash_dev_ex.ids[1] = tmp_id;
+#ifdef CONFIG_NAND_FLASH_HINFC504
+	if (nand_get_spl_flash_type
+			&& nand_get_spl_flash_type(mtd, chip, &flash_dev_ex)) {
+#else
+		type = nand_base_get_special_flash_type(mtd, chip,
+				flash_dev_ex.ids);
+			if (nand_base_get_special_flash_type
+					&& (type != NULL)) {
+#endif
+
+#ifdef CONFIG_NAND_FLASH_HINFC504
+				type = &flash_dev_ex.flash_dev;
+#endif
+				if (!mtd->name)
+					mtd->name = type->name;
+
+				chip->chipsize = (uint64_t)type->chipsize << 20;
+				mtd->erasesize = type->erasesize;
+				mtd->writesize = type->pagesize;
+#ifdef CONFIG_NAND_FLASH_HINFC504
+				mtd->oobsize   = flash_dev_ex.oobsize;
+#else
+				mtd->oobsize   = *(unsigned long *)&type[1];
+#endif
+				busw = (type->options & NAND_BUSWIDTH_16);
+
+				goto find_type;
+			}
+
+		/* Lookup the flash id */
+		for (i = 0; nand_flash_ids[i].name != NULL; i++) {
+			if (dev_id == nand_flash_ids[i].id) {
+				type =  &nand_flash_ids[i];
+				break;
+			}
+		}
+
+		if (!type)
+			return ERR_PTR(-ENODEV);
+
 		if (!mtd->name)
 			mtd->name = type->name;
 
 		chip->chipsize = (uint64_t)type->chipsize << 20;
-		mtd->erasesize = type->erasesize;
-		mtd->writesize = type->pagesize;
-		mtd->oobsize   = *(unsigned long *)&type[1];
-		busw = (type->options & NAND_BUSWIDTH_16);
 
-		goto find_type;
-	}
+		/* Newer devices have all the information
+		   in additional id bytes */
+		if (!type->pagesize) {
+			int extid;
+			/* The 3rd id byte holds MLC / multichip data */
+			chip->cellinfo = chip->read_byte(mtd);
+			/* The 4th id byte is the important one */
+			extid = chip->read_byte(mtd);
+			/* Calc pagesize */
+			mtd->writesize = 1024 << (extid & 0x3);
+			extid >>= 2;
+			/* Calc oobsize */
+			mtd->oobsize = (8 << (extid & 0x01))
+				* (mtd->writesize >> 9);
+			extid >>= 2;
+			/* Calc blocksize. Blocksize is multiples of 64KiB */
+			mtd->erasesize = (64 * 1024) << (extid & 0x03);
+			extid >>= 2;
+			/* Get buswidth information */
+			busw = (extid & 0x01) ? NAND_BUSWIDTH_16 : 0;
 
-	/* Lookup the flash id */
-	for (i = 0; nand_flash_ids[i].name != NULL; i++) {
-		if (dev_id == nand_flash_ids[i].id) {
-			type =  &nand_flash_ids[i];
-			break;
+		} else {
+			/*
+			 * Old devices have chip data hardcoded in the
+			 * device id table
+			 */
+			mtd->erasesize = type->erasesize;
+			mtd->writesize = type->pagesize;
+			mtd->oobsize = mtd->writesize / 32;
+			busw = type->options & NAND_BUSWIDTH_16;
 		}
-	}
+		flash_dev_ex.oobsize = mtd->oobsize;
 
-	if (!type)
-		return ERR_PTR(-ENODEV);
-
-	if (!mtd->name)
-		mtd->name = type->name;
-
-	chip->chipsize = (uint64_t)type->chipsize << 20;
-
-	/* Newer devices have all the information in additional id bytes */
-	if (!type->pagesize) {
-		int extid;
-		/* The 3rd id byte holds MLC / multichip data */
-		chip->cellinfo = chip->read_byte(mtd);
-		/* The 4th id byte is the important one */
-		extid = chip->read_byte(mtd);
-		/* Calc pagesize */
-		mtd->writesize = 1024 << (extid & 0x3);
-		extid >>= 2;
-		/* Calc oobsize */
-		mtd->oobsize = (8 << (extid & 0x01)) * (mtd->writesize >> 9);
-		extid >>= 2;
-		/* Calc blocksize. Blocksize is multiples of 64KiB */
-		mtd->erasesize = (64 * 1024) << (extid & 0x03);
-		extid >>= 2;
-		/* Get buswidth information */
-		busw = (extid & 0x01) ? NAND_BUSWIDTH_16 : 0;
-
-	} else {
 		/*
-		 * Old devices have chip data hardcoded in the device id table
+		 * the flash oobsize maybe larger than error correct
+		 * request oobsize, so I resize oobsize.
 		 */
-		mtd->erasesize = type->erasesize;
-		mtd->writesize = type->pagesize;
-		mtd->oobsize = mtd->writesize / 32;
-		busw = type->options & NAND_BUSWIDTH_16;
-	}
-
-	/*
-	 * the flash oobsize maybe larger than error correct request oobsize,
-	 * so I resize oobsize.
-	 */
 find_type:
-	if (nand_base_oob_resize)
-	{
-		if (nand_base_oob_resize(mtd, chip, (char *)&ecctype))
+#ifdef CONFIG_NAND_FLASH_HINFC504
+		if (nand_oob_resize
+				&& nand_oob_resize(mtd, chip, &flash_dev_ex))
 			return ERR_PTR(-ENODEV);
+#else
+		if (nand_base_oob_resize) {
+			if (nand_base_oob_resize(mtd, chip, (char *)&ecctype))
+				return ERR_PTR(-ENODEV);
+		}
+#endif
+
+		/* Try to identify manufacturer */
+		for (maf_idx = 0; nand_manuf_ids[maf_idx].id != 0x0;
+				maf_idx++) {
+			if (nand_manuf_ids[maf_idx].id == *maf_id)
+				break;
+		}
+
+		/*
+		 * Check, if buswidth is correct. Hardware drivers should set
+		 * chip correct !
+		 */
+		if (busw != (chip->options & NAND_BUSWIDTH_16)) {
+			printf("NAND device: Manufacturer ID:"
+				" 0x%02x, Chip ID: 0x%02x (%s %s)\n",
+				*maf_id, dev_id,
+				nand_manuf_ids[maf_idx].name,
+				mtd->name);
+			printf("NAND bus width %d instead %d bit\n",
+				(chip->options & NAND_BUSWIDTH_16) ? 16 : 8,
+				busw ? 16 : 8);
+			return ERR_PTR(-EINVAL);
+		}
+
+		if (nand_info_ex.type == 0) {
+			memset(&nand_info_ex, 0, sizeof(struct mtd_info_ex));
+
+			nand_info_ex.type      = MTD_NANDFLASH;
+			nand_info_ex.chipsize  = chip->chipsize;
+			nand_info_ex.erasesize = mtd->erasesize;
+			nand_info_ex.pagesize  = mtd->writesize;
+			/* smaller than nand chip space area */
+			nand_info_ex.oobsize   = mtd->oobsize;
+#ifdef CONFIG_NAND_FLASH_HINFC504
+			nand_info_ex.ecctype   = flash_dev_ex.ecctype;
+#else
+			nand_info_ex.ecctype   = ecctype;
+#endif
+			nand_info_ex.id_length = 8;
+			nand_info_ex.numchips  = 1;
+
+			memcpy(nand_info_ex.ids, flash_dev_ex.ids, 8);
+
+			strncpy(nand_info_ex.name, mtd->name,
+					sizeof(nand_info_ex.name));
+			nand_info_ex.name[sizeof(nand_info_ex.name)-1] = '\0';
+		}
+
+		/* Calculate the address shift from the page size */
+		chip->page_shift = ffs(mtd->writesize) - 1;
+		/* Convert chipsize to number of pages per chip -1. */
+		chip->pagemask = (chip->chipsize >> chip->page_shift) - 1;
+
+		chip->bbt_erase_shift = chip->phys_erase_shift =
+			ffs(mtd->erasesize) - 1;
+		if (chip->chipsize & 0xffffffff)
+			chip->chip_shift = ffs((unsigned)chip->chipsize) - 1;
+		else
+			chip->chip_shift = ffs((unsigned)(chip->chipsize >> 32))
+						+ 31;
+
+		/* Set the bad block position */
+		chip->badblockpos = mtd->writesize > 512 ?
+			NAND_LARGE_BADBLOCK_POS : NAND_SMALL_BADBLOCK_POS;
+
+		/* Get chip options, preserve non chip based options */
+		chip->options &= ~NAND_CHIPOPTIONS_MSK;
+		chip->options |= type->options & NAND_CHIPOPTIONS_MSK;
+
+		/*
+		 * Set chip as a default. Board drivers can override it,
+		 * if necessary
+		 */
+		chip->options |= NAND_NO_AUTOINCR;
+
+		/* Check if chip is a not a samsung device. Do not clear the
+		 * options for chips which are not having an extended id.
+		 */
+		if (*maf_id != NAND_MFR_SAMSUNG && !type->pagesize)
+			chip->options &= ~NAND_SAMSUNG_LP_OPTIONS;
+
+		/* Check for AND chips with 4 page planes */
+		if (chip->options & NAND_4PAGE_ARRAY)
+			chip->erase_cmd = multi_erase_cmd;
+		else
+			chip->erase_cmd = single_erase_cmd;
+
+		/* Do not replace user supplied command function ! */
+		if (mtd->writesize > 512 && chip->cmdfunc == nand_command)
+			chip->cmdfunc = nand_command_lp;
+
+		MTDDEBUG(MTD_DEBUG_LEVEL0, "NAND device: Manufacturer ID:"
+				" 0x%02x, Chip ID: 0x%02x (%s %s)\n",
+				*maf_id, dev_id,
+				nand_manuf_ids[maf_idx].name, type->name);
+
+		return type;
 	}
-
-	/* Try to identify manufacturer */
-	for (maf_idx = 0; nand_manuf_ids[maf_idx].id != 0x0; maf_idx++) {
-		if (nand_manuf_ids[maf_idx].id == *maf_id)
-			break;
-	}
-
-	/*
-	 * Check, if buswidth is correct. Hardware drivers should set
-	 * chip correct !
-	 */
-	if (busw != (chip->options & NAND_BUSWIDTH_16)) {
-		printk(KERN_INFO "NAND device: Manufacturer ID:"
-		       " 0x%02x, Chip ID: 0x%02x (%s %s)\n", *maf_id,
-		       dev_id, nand_manuf_ids[maf_idx].name, mtd->name);
-		printk(KERN_WARNING "NAND bus width %d instead %d bit\n",
-		       (chip->options & NAND_BUSWIDTH_16) ? 16 : 8,
-		       busw ? 16 : 8);
-		return ERR_PTR(-EINVAL);
-	}
-
-	if (nand_info_ex.type == 0)
-	{
-		memset(&nand_info_ex, 0, sizeof(struct mtd_info_ex));
-
-		nand_info_ex.type      = MTD_NANDFLASH;
-		nand_info_ex.chipsize  = chip->chipsize;
-		nand_info_ex.erasesize = mtd->erasesize;
-		nand_info_ex.pagesize  = mtd->writesize;
-		nand_info_ex.oobsize   = mtd->oobsize; /* smaller than nand chip space area */
-		nand_info_ex.ecctype   = ecctype;
-		nand_info_ex.id_length = 8;
-		nand_info_ex.numchips  = 1;
-
-		memcpy(nand_info_ex.ids, byte, 8);
-
-		strncpy(nand_info_ex.name, mtd->name, sizeof(nand_info_ex.name));
-		nand_info_ex.name[sizeof(nand_info_ex.name)-1] = '\0';
-	}
-
-	/* Calculate the address shift from the page size */
-	chip->page_shift = ffs(mtd->writesize) - 1;
-	/* Convert chipsize to number of pages per chip -1. */
-	chip->pagemask = (chip->chipsize >> chip->page_shift) - 1;
-
-	chip->bbt_erase_shift = chip->phys_erase_shift =
-		ffs(mtd->erasesize) - 1;
-	if (chip->chipsize & 0xffffffff)
-		chip->chip_shift = ffs((unsigned)chip->chipsize) - 1;
-	else
-		chip->chip_shift = ffs((unsigned)(chip->chipsize >> 32)) + 31;
-
-	/* Set the bad block position */
-	chip->badblockpos = mtd->writesize > 512 ?
-		NAND_LARGE_BADBLOCK_POS : NAND_SMALL_BADBLOCK_POS;
-
-	/* Get chip options, preserve non chip based options */
-	chip->options &= ~NAND_CHIPOPTIONS_MSK;
-	chip->options |= type->options & NAND_CHIPOPTIONS_MSK;
-
-	/*
-	 * Set chip as a default. Board drivers can override it, if necessary
-	 */
-	chip->options |= NAND_NO_AUTOINCR;
-
-	/* Check if chip is a not a samsung device. Do not clear the
-	 * options for chips which are not having an extended id.
-	 */
-	if (*maf_id != NAND_MFR_SAMSUNG && !type->pagesize)
-		chip->options &= ~NAND_SAMSUNG_LP_OPTIONS;
-
-	/* Check for AND chips with 4 page planes */
-	if (chip->options & NAND_4PAGE_ARRAY)
-		chip->erase_cmd = multi_erase_cmd;
-	else
-		chip->erase_cmd = single_erase_cmd;
-
-	/* Do not replace user supplied command function ! */
-	if (mtd->writesize > 512 && chip->cmdfunc == nand_command)
-		chip->cmdfunc = nand_command_lp;
-
-	MTDDEBUG (MTD_DEBUG_LEVEL0, "NAND device: Manufacturer ID:"
-	          " 0x%02x, Chip ID: 0x%02x (%s %s)\n", *maf_id, dev_id,
-	          nand_manuf_ids[maf_idx].name, type->name);
-
-	return type;
-}
 
 /**
  * nand_scan_ident - [NAND Interface] Scan for the NAND device
@@ -2886,7 +2901,7 @@ int nand_scan_ident(struct mtd_info *mtd, int maxchips)
 
 	printk("Block:%sB ", ultohstr(mtd->erasesize));
 	printk("Page:%sB ",  ultohstr(mtd->writesize));
-	printk("Chip:%sB*%d ",  ultohstr(chip->chipsize), 
+	printk("Chip:%sB*%d ",  ultohstr(chip->chipsize),
 		nand_info_ex.numchips);
 	printk("OOB:%sB ", ultohstr(mtd->oobsize));
 	printk("ECC:%s ", get_ecctype_str(nand_info_ex.ecctype));

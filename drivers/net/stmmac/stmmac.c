@@ -9,6 +9,10 @@
 #include "sys_godarm.h"
 #endif
 
+#ifdef CONFIG_HI3535
+#include "sys_hi3535.h"
+#endif
+
 #ifndef STMMAC_SINGLE_MAC
 static struct stmmac_netdev_local g_stmmac_ld[2];
 #else
@@ -28,6 +32,11 @@ unsigned char GMAC1_PHY_ADDR = STMMAC_PHYADDR1;
 #endif
 
 unsigned int FLAG;
+
+#define INTERFACE_MODE_RGMII 0x20
+#define INTERFACE_MODE_MII 0x0
+#define INTERFACE_MODE_RMII 0x80
+static unsigned int g_interface_mode = INTERFACE_MODE_RGMII;
 
 struct dma_desc_rx rd __attribute__ ((aligned(16)));
 struct dma_desc_tx td __attribute__ ((aligned(16)));
@@ -216,9 +225,9 @@ static void stmmac_net_adjust_link(struct stmmac_netdev_local *ld)
 
 #ifdef CONFIG_TNK
 	newval |= 0xc;
-#ifdef STMMAC_RGMII
-	newval |= 0x20;
-#endif
+
+	/* set mac interface mode mii, rmii, rgmii */
+	newval |= g_interface_mode;
 
 	if (ld->port)
 		newval |= newval << 16;
@@ -391,6 +400,24 @@ static int stmmac_init(void)
 {
 	int ret = 0;
 	char *phyaddr;
+	char *mdio_intf;
+
+	/* get mdio interface from env.FORMAT: mdio_intf=mii or mdio_intf=rgmii
+	   or mdio_intf=rmii */
+	mdio_intf = getenv("mdio_intf");
+	if (mdio_intf) {
+		if (strncmp(mdio_intf, "mii", 3)
+				&& strncmp(mdio_intf, "rgmii", 5)
+				&& strncmp(mdio_intf, "rmii", 4)) {
+			printf("Invalid mdio intface assignment");
+			printf("mii, rgmii or rmii ). Set default to rgmii\n");
+		} else if (!strncmp(mdio_intf, "mii", 3))
+			g_interface_mode = INTERFACE_MODE_MII;
+		else if (!strncmp(mdio_intf, "rgmii", 5))
+			g_interface_mode = INTERFACE_MODE_RGMII;
+		else if (!strncmp(mdio_intf, "rmii", 4))
+			g_interface_mode = INTERFACE_MODE_RMII;
+	}
 
 	/*get phy addr of GMAC0 port*/
 	phyaddr = getenv("phyaddr0");

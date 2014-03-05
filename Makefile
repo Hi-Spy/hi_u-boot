@@ -209,6 +209,8 @@ LIBS += drivers/misc/libmisc.a
 LIBS += drivers/mmc/libmmc.a
 LIBS += drivers/mtd/libmtd.a
 LIBS += drivers/mtd/nand/libnand.a
+LIBS += drivers/mtd/nand/hinfc301/libhinfcv301.a
+LIBS += drivers/mtd/nand/hinfc504/libhinfcv504.a
 LIBS += drivers/mtd/onenand/libonenand.a
 LIBS += drivers/mtd/ubi/libubi.a
 LIBS += drivers/mtd/spi/libspi_flash.a
@@ -355,7 +357,7 @@ GEN_UBOOT = \
 		cd $(LNDIR) && $(LD) $(LDFLAGS) $$UNDEF_SYM $(__OBJS) \
 			--start-group $(__LIBS) --end-group $(PLATFORM_LIBS) \
 			-Map u-boot.map -o u-boot
-$(obj)u-boot:	depend $(SUBDIRS) $(OBJS) $(LIBBOARD) $(LIBS) $(LDSCRIPT) $(obj)u-boot.lds
+$(obj)u-boot:	ddr_training depend $(SUBDIRS) $(OBJS) $(LIBBOARD) $(LIBS) $(LDSCRIPT) $(obj)u-boot.lds
 		$(GEN_UBOOT)
 ifeq ($(CONFIG_KALLSYMS),y)
 		smap=`$(call SYSTEM_MAP,u-boot) | \
@@ -363,6 +365,14 @@ ifeq ($(CONFIG_KALLSYMS),y)
 		$(CC) $(CFLAGS) -DSYSTEM_MAP="\"$${smap}\"" \
 			-c common/system_map.c -o $(obj)common/system_map.o
 		$(GEN_UBOOT) $(obj)common/system_map.o
+endif
+
+.PHONY: ddr_training
+ddr_training:
+ifdef CONFIG_DDR_TRAINING_V300
+	make -C $(TOPDIR)/arch/$(ARCH)/cpu/$(CPU)/ddr_training \
+		TOPDIR=$(TOPDIR) \
+		CROSS_COMPILE=$(CROSS_COMPILE)
 endif
 
 $(OBJS):	depend
@@ -3218,12 +3228,17 @@ hi3518a_config: unconfig
 hi3518c_config: unconfig
 	@$(MKCONFIG) hi3518c arm hi3518 hi3518 NULL hi3518
 
+hi3518e_config: unconfig
+	@$(MKCONFIG) hi3518e arm hi3518 hi3518 NULL hi3518
+
 hi3516c_config: unconfig
 	@$(MKCONFIG) hi3516c arm hi3518 hi3518 NULL hi3518
 
 hi3520d_config: unconfig
 	@$(MKCONFIG) $(@:_config=) arm hi3520d hi3520d NULL hi3520d
 
+hi3535_config: unconfig
+	@$(MKCONFIG) $(@:_config=) arm hi3535 hi3535 NULL hi3535
 godarm_config:	unconfig
 	@$(MKCONFIG) $(@:_config=) arm godarm godarm NULL godarm
 
@@ -3736,8 +3751,17 @@ grsim_leon2_config : unconfig
 #########################################################################
 #########################################################################
 #########################################################################
-
-clean:
+TARGETS := hi3535
+.PHONY: ddr_training.clean
+ddr_training.clean:
+ifdef CONFIG_DDR_TRAINING_V300
+	@for ix in ${TARGETS}; do ( \
+		test ! -d $(TOPDIR)/arch/arm/cpu/$${ix}/ddr_training \
+		|| make -C $(TOPDIR)/arch/arm/cpu/$${ix}/ddr_training \
+		CROSS_COMPILE=$(CROSS_COMPILE) clean; \
+		) done
+endif
+clean:	ddr_training.clean
 	@rm -f $(obj)examples/standalone/82559_eeprom			  \
 	       $(obj)examples/standalone/atmel_df_pow2			  \
 	       $(obj)examples/standalone/eepro100_eeprom		  \

@@ -30,8 +30,9 @@ COBJS-y += nand.o
 COBJS-y += nand_base.o
 COBJS-y += nand_bbt.o
 COBJS-y += nand_ecc.o
-COBJS-y += nand_ids.o nand_spl_ids.o
+COBJS-y += nand_ids.o
 COBJS-y += nand_util.o
+COBJS-y += hinfc_common.o
 
 COBJS-$(CONFIG_NAND_ATMEL) += atmel_nand.o
 COBJS-$(CONFIG_DRIVER_NAND_BFIN) += bfin_nand.o
@@ -51,11 +52,6 @@ COBJS-$(CONFIG_NAND_SPEAR) += spr_nand.o
 COBJS-$(CONFIG_NAND_OMAP_GPMC) += omap_gpmc.o
 COBJS-$(CONFIG_NAND_PLAT) += nand_plat.o
 COBJS-$(CONFIG_NAND_GODBOX_V1)  += hinfc300.o
-COBJS-$(CONFIG_NAND_GODBOX)  += hinfc301.o hinfc301_godbox.o
-COBJS-$(CONFIG_NAND_GODEYES) += hinfc301.o hinfc301_godeyes.o
-COBJS-$(CONFIG_NAND_GODNET) += hinfc301.o hinfc301_godnet.o
-COBJS-$(CONFIG_NAND_GODARM) += hinfc301.o hinfc301_godarm.o
-COBJS-$(CONFIG_NAND_3518) += hinfc301.o hinfc301_3518.o
 
 endif
 
