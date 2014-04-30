@@ -290,19 +290,19 @@
 "sf probe 0;sf read 0x82000000 0x30000 0x300000;bootm 0x82000000"
 
 #define CONFIG_BOOTARGS   \
-"mem=80M console=ttyAMA0,115200 "   \
+"mem=72M console=ttyAMA0,115200 "   \
 "root=/dev/mtdblock3 rootfstype=squashfs rw init=/init "  \
 "mtdparts=hi_sfc:128k(u-boot)ro,64k(env),3m(kernel),4608k(rootfs),512k(config),-(app)"
 
 #if JJX_DEBUG
 #define CONFIG_BOOTARGS_FLASH         \
-"setenv bootargs mem=80M console=ttyAMA0,115200 "	\
+"setenv bootargs mem=72M console=ttyAMA0,115200 "	\
 "root=/dev/mtdblock3 rootfstype=squashfs rw init=/init "  \
 "mtdparts=hi_sfc:128k(u-boot)ro,64k(env),3m(kernel),4608k(rootfs),512k(config),-(app);" \
 "saveenv"
 
 #define CONFIG_BOOTARGS_NFS         \
-"setenv bootargs mem=80M console=ttyAMA0,115200 "   \
+"setenv bootargs mem=72M console=ttyAMA0,115200 "   \
 "root=/dev/nfs rw nfsroot=${serverip}:${nfs_root} nolock " \
 "ip=${ipaddr}:${serverip}:${gatewayip}:${netmask}::eth0:off eth=${ethaddr} " \
 "mtdparts=hi_sfc:128k(u-boot)ro,64k(env),3m(kernel),4608k(rootfs),512k(config),-(app);" \
