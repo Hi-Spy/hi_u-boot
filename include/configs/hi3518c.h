@@ -317,6 +317,7 @@
                                               "-(app)" 
 
 #define CONFIG_EXTRA_ENV_SETTINGS   \
+"chiptype=hi3518c\0"\
 "loadaddr=82000000\0"\
 "bootaddr=82000000\0"\
 "ubootsize=20000\0"\
