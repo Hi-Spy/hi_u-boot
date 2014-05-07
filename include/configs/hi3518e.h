@@ -292,27 +292,27 @@
 #define CONFIG_BOOTARGS   \
 "mem=44M console=ttyAMA0,115200 "   \
 "root=/dev/mtdblock3 rootfstype=squashfs rw init=/init "  \
-"mtdparts=hi_sfc:128k(u-boot)ro,64k(env),1536k(kernel),3m(rootfs),512k(config),-(app)"
+"mtdparts=hi_sfc:128k(u-boot)ro,64k(env),3m(kernel),4608k(rootfs),512k(config),-(app)"
 
 #if JJX_DEBUG
 #define CONFIG_BOOTARGS_FLASH         \
 "setenv bootargs mem=44M console=ttyAMA0,115200 "	\
 "root=/dev/mtdblock3 rootfstype=squashfs rw init=/init "  \
-"mtdparts=hi_sfc:128k(u-boot)ro,64k(env),1536k(kernel),3m(rootfs),512k(config),-(app);" \
+"mtdparts=hi_sfc:128k(u-boot)ro,64k(env),3m(kernel),4608k(rootfs),512k(config),-(app);" \
 "saveenv"
 
 #define CONFIG_BOOTARGS_NFS         \
 "setenv bootargs mem=44M console=ttyAMA0,115200 "   \
 "root=/dev/nfs rw nfsroot=${serverip}:${nfs_root} nolock " \
 "ip=${ipaddr}:${serverip}:${gatewayip}:${netmask}::eth0:off eth=${ethaddr} " \
-"mtdparts=hi_sfc:128k(u-boot)ro,64k(env),1536k(kernel),3m(rootfs),512k(config),-(app);" \
+"mtdparts=hi_sfc:128k(u-boot)ro,64k(env),3m(kernel),4608k(rootfs),512k(config),-(app);" \
 "saveenv"
 
 #define MTDIDS_DEFAULT     "hi_sfc0=hi_sfc-0"
 #define MTDPARTS_DEFAULT   "mtdparts=hi_sfc-0:128k(u-boot)ro,"    \
                                               "64k(env)," \
-                                              "1536k(kernel)," \
-                                              "3m(rootfs)," \
+                                              "3m(kernel)," \
+                                              "4608k(rootfs)," \
                                               "512k(config)," \
                                               "-(app)" 
 
@@ -324,9 +324,9 @@
 "envaddr=20000\0"\
 "envsize=10000\0"\
 "kerneladdr=30000\0"\
-"kernelsize=180000\0"\
-"rootfsaddr=1B0000\0"\
-"rootfssize=300000\0"\
+"kernelsize=300000\0"\
+"rootfsaddr=330000\0"\
+"rootfssize=480000\0"\
 "ubootname=u-boot-200MHZ.bin\0"\
 "kernelname=uImage\0"\
 "rootfsname=rootfs_64k.squashfs\0"\

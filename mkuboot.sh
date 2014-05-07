@@ -7,13 +7,13 @@ export ARCH=arm
 find ../hisi_u-boot-2010.06 | xargs touch
 
 make distclean
-make hi3518c_config
+make hi3518e_config
 make
 make env
 
 echo "--------------------------------------------------------------------------"
 
-export UBOOT_REG_BIN=reg_info_hi3518c.bin
+export UBOOT_REG_BIN=reg_info_hi3518e.bin
 export UBOOT=u-boot-200MHZ.bin
 
 echo "cp $BUILD_DIR/u-boot.bin ./uboot_tools"
