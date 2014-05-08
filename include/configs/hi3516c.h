@@ -78,21 +78,21 @@
  * NAND Flash Configuration
  -----------------------------------------------------------------------*/
 #define CONFIG_SYS_64BIT_VSPRINTF
-#define CONFIG_CMD_NAND
-#define CONFIG_SYS_NAND_BASE NAND_MEM_BASE
-#define CONFIG_NAND_3518			1
-#define CFG_MAX_NAND_DEVICE			CONFIG_SYS_MAX_NAND_DEVICE
-#define CONFIG_SYS_MAX_NAND_DEVICE		1
-#define CONFIG_SYS_NAND_MAX_CHIPS		2
-#define CONFIG_ENV_IS_IN_NAND			1
+//#define CONFIG_CMD_NAND
+//#define CONFIG_SYS_NAND_BASE NAND_MEM_BASE
+//#define CONFIG_NAND_3518			1
+//#define CFG_MAX_NAND_DEVICE			CONFIG_SYS_MAX_NAND_DEVICE
+//#define CONFIG_SYS_MAX_NAND_DEVICE		1
+//#define CONFIG_SYS_NAND_MAX_CHIPS		2
+//#define CONFIG_ENV_IS_IN_NAND			1
 
-#define CONFIG_HINFC301_MAX_CHIP		CONFIG_SYS_MAX_NAND_DEVICE
-#define CONFIG_HINFC301_REG_BASE_ADDRESS	NANDC_REG_BASE
-#define CONFIG_HINFC301_BUFFER_BASE_ADDRESS	NAND_MEM_BASE
-#define CONFIG_HINFC301_HARDWARE_PAGESIZE_ECC
-#define CONFIG_HINFC301_W_LATCH			(0xa)
-#define CONFIG_HINFC301_R_LATCH			(0xa)
-#define CONFIG_HINFC301_RW_LATCH		(0xa)
+//#define CONFIG_HINFC301_MAX_CHIP		CONFIG_SYS_MAX_NAND_DEVICE
+//#define CONFIG_HINFC301_REG_BASE_ADDRESS	NANDC_REG_BASE
+//#define CONFIG_HINFC301_BUFFER_BASE_ADDRESS	NAND_MEM_BASE
+//#define CONFIG_HINFC301_HARDWARE_PAGESIZE_ECC
+//#define CONFIG_HINFC301_W_LATCH			(0xa)
+//#define CONFIG_HINFC301_R_LATCH			(0xa)
+//#define CONFIG_HINFC301_RW_LATCH		(0xa)
 
 /* no nor flash */
 #define CONFIG_SYS_NO_FLASH
@@ -134,30 +134,33 @@
 /* env in flash instead of CFG_ENV_IS_NOWHERE */
 #define CONFIG_ENV_IS_IN_SPI_FLASH	1
 
-#define CONFIG_ENV_OFFSET		0x80000 /* environment starts here */
+#define CONFIG_ENV_OFFSET		0x20000 /* environment starts here */
 #define CONFIG_ENV_NAND_ADDR		(CONFIG_ENV_OFFSET)
 #define CONFIG_ENV_SPI_ADDR		(CONFIG_ENV_OFFSET)
 #define CONFIG_CMD_SAVEENV
 
 #define CONFIG_STACKSIZE		(128 * 1024)
-#define CONFIG_ENV_SIZE			0x40000 /* include ENV_HEADER_SIZE */
+#define CONFIG_ENV_SIZE			0x10000 /* include ENV_HEADER_SIZE */
 #define CONFIG_ENV_SECT_SIZE		CONFIG_ENV_SIZE
 #define CONFIG_NR_DRAM_BANKS		1	/* we have 1 bank of DRAM */
 #define CFG_BOOT_PARAMS			(MEM_BASE_DDR + 0x0100)
+
 
 /*-----------------------------------------------------------------------
  *  Environment   Configuration
  ------------------------------------------------------------------------*/
 #define CONFIG_BOOTCOMMAND "bootm 0x82000000"
 
-#define CONFIG_BOOTDELAY 1
-#define CONFIG_BOOTARGS	"mem=64M console=ttyAMA0,115200"
-#define CONFIG_NETMASK	255.255.255.0		/* talk on MY local net */
-#define CONFIG_IPADDR	192.168.1.10		/* default static IP */
-#define CONFIG_SERVERIP	192.168.1.2		/* default tftp server ip */
-#define CONFIG_ETHADDR	00:00:23:34:45:66
-#define CONFIG_BOOTFILE	"uImage"		/* file to load */
-#define CONFIG_BAUDRATE	115200
+#define CONFIG_BOOTDELAY    1
+
+#define CONFIG_NETMASK	    255.255.255.0		/* talk on MY local net */
+#define CONFIG_IPADDR	    192.168.26.120		/* default static IP */
+#define CONFIG_GATEWAYIP    192.168.26.1
+#define CONFIG_SERVERIP	    192.168.26.211		/* default tftp server ip */
+#define CONFIG_ETHADDR	    74:37:2f:12:34:56
+#define CONFIG_BOOTFILE	    "uImage"		/* file to load */
+#define CONFIG_BAUDRATE	    115200
+
 
 /*-----------------------------------------------------------------------
  * for bootm linux
@@ -177,7 +180,7 @@
 #define CONFIG_SYS_BAUDRATE_TABLE	{9600, 19200, 38400, 57600, 115200}
 #define CONFIG_SYS_MAXARGS		16 /* max number of command args */
 
-#define CONFIG_CMD_LOADB		/* loadb common/cmd_load.c */
+//#define CONFIG_CMD_LOADB		/* loadb common/cmd_load.c */
 
 /*-----------------------------------------------------------------------
  * network config
@@ -219,7 +222,7 @@
  * console display  Configuration
  ------------------------------------------------------------------------*/
 #define CONFIG_VERSION_VARIABLE	1		/* used in common/main.c */
-#define CONFIG_SYS_PROMPT	"hisilicon # "	/* Monitor Command Prompt */
+#define CONFIG_SYS_PROMPT	"hi3516c # "	/* Monitor Command Prompt */
 #define CONFIG_SYS_CBSIZE	1024		/* Console I/O Buffer Size */
 #define CONFIG_SYS_PBSIZE	(CONFIG_SYS_CBSIZE+sizeof(CONFIG_SYS_PROMPT)+16)
 
@@ -239,7 +242,7 @@
 #define CONFIG_SYS_MEMTEST_SCRATCH	CFG_DDR_PHYS_OFFSET
 
 #define CONFIG_CMDLINE_TAG		1 /* enable passing of ATAGs */
-#define CONFIG_INITRD_TAG		1 /* support initrd */
+//#define CONFIG_INITRD_TAG		1 /* support initrd */
 #define CONFIG_SETUP_MEMORY_TAGS	1
 #define CONFIG_MISC_INIT_R		1 /* call misc_init_r during start up */
 
@@ -268,10 +271,10 @@
 #endif
 
 #define __LITTLE_ENDIAN				1
-#define CONFIG_DOS_PARTITION			1
+//#define CONFIG_DOS_PARTITION			1
 
-#define CONFIG_CMD_FAT				1
-#define CONFIG_CMD_EXT2				1
+//#define CONFIG_CMD_FAT				1
+//#define CONFIG_CMD_EXT2				1
 
 /*-----------------------------------------------------------------------
  * sdcard
@@ -289,14 +292,87 @@
 /*-----------------------------------------------------------------------
  * usb
  * ----------------------------------------------------------------------*/
-#define CONFIG_USB_OHCI				1
-#define CONFIG_CMD_USB				1
-#define CONFIG_USB_STORAGE			1
-#define CONFIG_LEGACY_USB_INIT_SEQ
+//#define CONFIG_USB_OHCI				1
+//#define CONFIG_CMD_USB				1
+//#define CONFIG_USB_STORAGE			1
+//#define CONFIG_LEGACY_USB_INIT_SEQ
 
 /*-----------------------------------------------------------------------
  * SVB
  * ----------------------------------------------------------------------*/
 /* #define CONFIG_SVB_ENABLE */
 
+/*-----------------------------------------------------------------------
+ * jiangjx add
+ * ----------------------------------------------------------------------*/
+#define JJX_DEBUG 1
+#define CONFIG_CMD_RUN
+#define CONFIG_CMD_ECHO
+
+#define CONFIG_BOOTCOMMAND  \
+"sf probe 0;sf read 0x82000000 0x30000 0x300000;bootm 0x82000000"
+
+#define CONFIG_BOOTARGS   \
+"mem=176M console=ttyAMA0,115200 "   \
+"root=/dev/mtdblock3 rootfstype=squashfs rw init=/init "  \
+"mtdparts=hi_sfc:128k(u-boot)ro,64k(env),3m(kernel),4608k(rootfs),512k(config),-(app)"
+
+#if JJX_DEBUG
+#define CONFIG_BOOTARGS_FLASH         \
+"setenv bootargs mem=176M console=ttyAMA0,115200 "	\
+"root=/dev/mtdblock3 rootfstype=squashfs rw init=/init "  \
+"mtdparts=hi_sfc:128k(u-boot)ro,64k(env),3m(kernel),4608k(rootfs),512k(config),-(app);" \
+"saveenv"
+
+#define CONFIG_BOOTARGS_NFS         \
+"setenv bootargs mem=176M console=ttyAMA0,115200 "   \
+"root=/dev/nfs rw nfsroot=${serverip}:${nfs_root} nolock " \
+"ip=${ipaddr}:${serverip}:${gatewayip}:${netmask}::eth0:off eth=${ethaddr} " \
+"mtdparts=hi_sfc:128k(u-boot)ro,64k(env),3m(kernel),4608k(rootfs),512k(config),-(app);" \
+"saveenv"
+
+#define MTDIDS_DEFAULT     "hi_sfc0=hi_sfc-0"
+#define MTDPARTS_DEFAULT   "mtdparts=hi_sfc-0:128k(u-boot)ro,"    \
+                                              "64k(env)," \
+                                              "3m(kernel)," \
+                                              "4608k(rootfs)," \
+                                              "512k(config)," \
+                                              "-(app)" 
+
+#define CONFIG_EXTRA_ENV_SETTINGS   \
+"chiptype=hi3516c\0"\
+"loadaddr=82000000\0"\
+"bootaddr=82000000\0"\
+"ubootsize=20000\0"\
+"envaddr=20000\0"\
+"envsize=10000\0"\
+"kerneladdr=30000\0"\
+"kernelsize=300000\0"\
+"rootfsaddr=330000\0"\
+"rootfssize=480000\0"\
+"ubootname=u-boot-200MHZ.bin\0"\
+"kernelname=uImage\0"\
+"rootfsname=rootfs_64k.squashfs\0"\
+"nfs_root=/home/jiangjx/UbuntuShare/hisi/filesys\0"\
+"erase_env=sf probe 0;sf erase ${envaddr} ${envsize}\0"\
+"update_uboot=sf probe 0;"\
+     "mw.b ${loadaddr} 0xFF ${ubootsize};"\
+     "tftp ${loadaddr} ${ubootname};"\
+     "sf erase 0 ${ubootsize};"\
+     "sf write ${loadaddr} 0 ${ubootsize};\0"\
+"update_kernel=sf probe 0;"\
+     "mw.b ${loadaddr} 0xFF ${kernelsize};"\
+     "tftp ${loadaddr} ${kernelname};"\
+	 "sf erase ${kerneladdr} ${kernelsize};"\
+	 "sf write ${loadaddr} ${kerneladdr} ${kernelsize};\0"\
+"update_rootfs=sf probe 0;"\
+     "mw.b ${loadaddr} 0xFF ${rootfssize};"\
+     "tftp ${loadaddr} ${rootfsname};"\
+	 "sf erase ${rootfsaddr} ${rootfssize};"\
+	 "sf write ${loadaddr} ${rootfsaddr} ${rootfssize}\0"\
+"update_system=run update_kernel;run update_rootfs;"\
+     "echo ********TFTP Update System Finished!!!********"
+#endif
+
 #endif	/* __CONFIG_H */
+
