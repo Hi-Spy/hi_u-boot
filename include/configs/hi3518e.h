@@ -158,7 +158,7 @@
 #define CONFIG_SYS_BAUDRATE_TABLE	{9600, 19200, 38400, 57600, 115200}
 #define CONFIG_SYS_MAXARGS		16 /* max number of command args */
 
-//#define CONFIG_CMD_LOADB		/* loadb common/cmd_load.c */
+#define CONFIG_CMD_LOADB		/* loadb common/cmd_load.c */
 
 /*-----------------------------------------------------------------------
  * network config
@@ -327,9 +327,12 @@
 "kernelsize=300000\0"\
 "rootfsaddr=330000\0"\
 "rootfssize=480000\0"\
+"appaddr=830000\0"\
+"appsize=7D0000\0"\
 "ubootname=u-boot-200MHZ.bin\0"\
 "kernelname=uImage\0"\
 "rootfsname=rootfs_64k.squashfs\0"\
+"appname=app_64k.jffs2\0"\
 "nfs_root=/home/jiangjx/UbuntuShare/hisi/filesys\0"\
 "erase_env=sf probe 0;sf erase ${envaddr} ${envsize}\0"\
 "update_uboot=sf probe 0;"\
@@ -347,7 +350,12 @@
      "tftp ${loadaddr} ${rootfsname};"\
 	 "sf erase ${rootfsaddr} ${rootfssize};"\
 	 "sf write ${loadaddr} ${rootfsaddr} ${rootfssize}\0"\
-"update_system=run update_kernel;run update_rootfs;"\
+"update_app=sf probe 0;"\	  
+     "mw.b ${loadaddr} 0xFF ${appsize};"\	   
+     "tftp ${loadaddr} ${appname};"\	 
+     "sf erase ${appaddr} ${appsize};"\  
+     "sf write ${loadaddr} ${appaddr} ${appsize}\0"\
+"update_system=run update_kernel;run update_rootfs;run update_app;"\
      "echo ********TFTP Update System Finished!!!********"
 #endif
 
