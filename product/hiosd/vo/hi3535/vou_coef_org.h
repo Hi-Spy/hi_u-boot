@@ -21,7 +21,6 @@
 #include "vou_coef.h"
 
 /* 每一组缩放参数的大小，取8阶的最大的进行设置 */
-#if 0
 #define VOU_ZOOM_COEF_SIZE  (VOU_ZOOM_COEF_ITEM*VOU_ZOOM_COEF_MAXTAP * 2)  
 
 /* 8tap*/
@@ -50,13 +49,17 @@ extern const HI_S32 coefficient4_1_5M_a05[18][4];
 
 /* 色度垂直方向原来可以选择2阶，现在都同一为4阶 */
 extern const HI_S32 *g_pOrgZoomCoef[VOU_ZOOM_COEF_BUTT][VOU_ZOOM_TAP_BUTT];
-#endif
+/* 对于GAMMA系数，目前暂时采取*.b转换的方式进行                             */
+extern const HI_U8 g_aVoGammaCoef[VOU_GAMM_COEF_ROW][VOU_GAMM_COEF_COL];
+extern const HI_U16 g_aVoAccCoef[VOU_ACC_COEF_NUM];
+
+
 /* RGB->YUV601 常量系数矩阵 */
-//extern const CscCoef_S g_stCSC_RGB2YUV601_tv;
+extern const CscCoef_S g_stCSC_RGB2YUV601_tv;
 /* RGB->YUV601 常量系数矩阵 */
 extern const CscCoef_S g_stCSC_RGB2YUV601_pc;
 /* RGB->YUV709 常量系数矩阵 */
-//extern const CscCoef_S g_stCSC_RGB2YUV709_tv;
+extern const CscCoef_S g_stCSC_RGB2YUV709_tv;
 /* RGB->YUV709 常量系数矩阵 */
 extern const CscCoef_S g_stCSC_RGB2YUV709_pc;
 /* YUV601->RGB 常量系数矩阵 */

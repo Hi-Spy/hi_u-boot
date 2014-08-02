@@ -26,10 +26,6 @@ char D_PHY_NAME[MAX_PHY_NAME_LEN];
 unsigned char U_PHY_ADDR = HISFV_PHY_U;
 unsigned char D_PHY_ADDR = HISFV_PHY_D;
 
-#define INTERFACE_MODE_MII 0x0
-#define INTERFACE_MODE_RMII 0x1
-static unsigned int g_interface_mode = INTERFACE_MODE_MII;
-
 #ifndef INNER_PHY
 void set_efuse_unread(void)
 {
@@ -246,9 +242,7 @@ retry:
 		hieth_set_linkstat(ld, stat);
 		phy_print_status(ld, stat);
 		ld->link_stat = stat;
-		hieth_set_mii_mode(ld, g_interface_mode);
 	}
-
 	set_phy_valtage();
 }
 
@@ -309,20 +303,6 @@ static int hieth_init(void)
 {
 	int ret = 0;
 	char *phyaddr = NULL;
-	char *mdio_intf = NULL;
-
-	/*get mdio interface from env.FORMAT: mdio_intf=mii or mdio_intf=rmii*/
-	mdio_intf = getenv("mdio_intf");
-	if (mdio_intf) {
-		if (strncmp(mdio_intf, "mii", 3)
-				&& strncmp(mdio_intf, "rmii", 4)) {
-			printf("Invalid mdio intface assignment");
-			printf("mii, rmii ). Set default to mii\n");
-		} else if (!strncmp(mdio_intf, "mii", 3))
-			g_interface_mode = INTERFACE_MODE_MII;
-		else if (!strncmp(mdio_intf, "rmii", 4))
-			g_interface_mode = INTERFACE_MODE_RMII;
-	}
 
 	/*get phy addr of up port*/
 	phyaddr = getenv("phyaddru");

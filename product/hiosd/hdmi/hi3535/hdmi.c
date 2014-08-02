@@ -60,7 +60,7 @@ static inline HI_HDMI_VIDEO_FMT_E VoSyncToHdmiFmt(unsigned int vosync)
     }
 }
 
-int hdmi_display(unsigned int dev, unsigned int vosync, unsigned int input, unsigned int output)    
+int hdmi_display(unsigned int vosync, unsigned int input, unsigned int output)    
 {
     HI_U8  u8AviInfoFrameByte = 0, Index;
     HI_U8  u8VideoPath[4];
@@ -195,15 +195,15 @@ int hdmi_display(unsigned int dev, unsigned int vosync, unsigned int input, unsi
 #endif	        
     }
     
-    HW_ResetHDMITX(dev);
+    HW_ResetHDMITX();
 
     SW_ResetHDMITX();
     WriteDefaultConfigToEEPROM(); /* eeprom.c */
-    //DelayMS(50);
+    DelayMS(50);
     SetIClk( ReadByteEEPROM(EE_TX_ICLK_ADDR) );
     /* Enable Interrupts: VSync, Ri check, HotPlug */
-    WriteByteHDMITXP0(HDMI_INT_ADDR, CLR_MASK);
-    WriteByteHDMITXP0(HDMI_INT_MASK_ADDR, CLR_MASK);
+    //WriteByteHDMITXP0(HDMI_INT_ADDR, CLR_MASK);
+    //WriteByteHDMITXP0(HDMI_INT_MASK_ADDR, CLR_MASK);
     /* Set Video Path */
     HDMIPrint("einput:%d, eoutput:%d\n", einput, eoutput);
     if(HI_HDMI_VIDEO_MODE_RGB444 == einput)
@@ -531,15 +531,15 @@ int hdmi_display(unsigned int dev, unsigned int vosync, unsigned int input, unsi
 
     //SetDeepColor(0x02);
     WakeUpHDMITX();
-
     SI_TX_PHY_EnableHdmiOutput();
     return HI_SUCCESS;    
 }
 
 void hdmi_stop(void)
 {
-    #if 1
-    unsigned int i;
+    #if 0
+    volatile int i;
+
     RegSetBit(1, 0, HDMI_HARDWARE_RESET_ADDR);
     RegSetBit(1, 1, HDMI_HARDWARE_RESET_ADDR);
 
@@ -547,8 +547,6 @@ void hdmi_stop(void)
     {
         RegSetBit(0, i, HDMI_HARDWARE_RESET_ADDR);
     }
-
-    RegSetBit(0, 11, HDMI_HARDWARE_RESET_ADDR);
     #else
     HDMI_REG_WRITE(HDMI_HARDWARE_RESET_ADDR, 0x3); /* disable hdmi clk */
     #endif

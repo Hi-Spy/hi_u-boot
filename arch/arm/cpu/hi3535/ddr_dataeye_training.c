@@ -247,13 +247,13 @@ static int wr_bit_deskew_max(struct training_data *training,
 static int wr_bit_deskew_min(struct training_data *training,
 			     unsigned int bytenum, unsigned int dqindex)
 {
-	unsigned int ix;
+	int ix;
 	unsigned int dq_num;
 	unsigned int right_bound, half_bdl;
 	unsigned int min_level;
 
 	dq_num = (bytenum << 3) + dqindex;
-	ix = training->wrdq_val[dq_num];
+	ix = (int)training->wrdq_val[dq_num];
 
 	half_bdl = ix >> 1;
 	config_ddr_dq_wr(training, half_bdl, bytenum, dqindex);
@@ -271,8 +271,6 @@ static int wr_bit_deskew_min(struct training_data *training,
 
 		if (!check_multi_ssn(training, dq_num)) { /* ddrt test is OK*/
 			right_bound = ix;
-			if (ix == 0)
-				break;
 			ix--;
 		} else
 			break;
@@ -329,13 +327,13 @@ static int rd_bit_deskew_max(struct training_data *training,
 static int rd_bit_deskew_min(struct training_data *training,
 			     unsigned int bytenum, unsigned int dqindex)
 {
-	unsigned int ix;
+	int ix;
 	unsigned int dq_num;
 	unsigned int right_bound, half_bdl;
 	unsigned int min_level;
 
 	dq_num = (bytenum << 3) + dqindex;
-	ix = training->rddq_val[dq_num];
+	ix = (int) training->rddq_val[dq_num];
 
 	half_bdl = ix >> 1;
 	config_ddr_dq_rd(training, half_bdl, bytenum, dqindex);
@@ -354,8 +352,6 @@ static int rd_bit_deskew_min(struct training_data *training,
 		config_ddr_dq_rd(training, ix, bytenum, dqindex);
 		if (!check_multi_ssn(training, dq_num)) { /* ddrt test is OK*/
 			right_bound = ix;
-			if (ix == 0)
-				break;
 			ix--;
 		} else
 			break;

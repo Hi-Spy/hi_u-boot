@@ -306,5 +306,4 @@
 #endif /* CONFIG_DDR_TRAINING_V300 */
 
 #define CONFIG_OSD_ENABLE
-#define CONFIG_SVB_ENABLE
 #endif	/* __CONFIG_H */

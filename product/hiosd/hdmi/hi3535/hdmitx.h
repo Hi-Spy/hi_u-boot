@@ -16,7 +16,7 @@
 #define HDMI_TX_PHY_OFFSET 0x1800L
 #define HDMI_TX_PHY_ADDR  (HDMI_PHY_BASE_ADDR + HDMI_TX_PHY_OFFSET)
 
-void HW_ResetHDMITX(unsigned int dev);
+void HW_ResetHDMITX( void );
 void WakeUpHDMITX(void);
 void SetIClk(HI_U8);
 void SW_ResetHDMITX(void);

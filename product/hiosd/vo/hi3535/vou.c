@@ -75,9 +75,9 @@ int start_vo(unsigned int dev, unsigned int type, unsigned int sync)
     
     if (g_bInited == HI_FALSE)
     {    
+        SYS_HAL_SelVoBt1120PinConifg();
         SYS_HAL_SelVoVgaPinConifg();
-        SYS_HAL_SelVoHdmiPinConifg();
-        SYS_HAL_DDRConifg();
+        SYS_HAL_SelVoHdmiPinConifg();    
         SYS_HAL_VouBusResetSel(HI_FALSE);
         SYS_HAL_VouBusClkEn(HI_TRUE);
         SYS_HAL_SelVoClk(0x0);

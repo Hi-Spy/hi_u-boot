@@ -144,6 +144,29 @@ typedef struct hiHAL_COEF_ADDR_S
 /****************************************************************************
  * GLOBAL VARIABLES                                                         *
  ****************************************************************************/
+static HAL_COEF_ADDR_S g_stCoefAddr = {-1,NULL,-1,-1,-1,-1,-1,-1};
+#if 0
+static HAL_CSC_VALUE_S stCscDefVal[VOU_LAYER_MAX_NUM] = 
+{
+    {50,50,50,50},
+    {50,50,50,50},
+    {50,50,50,50},
+    {50,50,50,50},
+    {50,50,50,50},
+    {50,50,50,50},
+    {50,50,50,50},
+    {50,50,50,50},
+    {50,50,50,50},
+    {50,50,50,50},
+    {50,50,50,50},
+    {50,50,50,50},
+    {50,50,50,50},
+    {50,50,50,50},
+    {50,50,50,50},
+    {50,50,50,50},
+    {50,50,50,50}
+};
+#endif
 static HAL_LAYER_CONFIG_S g_stHalLayerCfg[VOU_LAYER_MAX_NUM] =
 {
     {
@@ -230,7 +253,7 @@ HAL_DISP_SYNCINFO_S g_stSyncTiming[VO_OUTPUT_BUTT] =
     {1,   1,   2,  1200,  49,  1,  1600, 496,  64,   1,    1,   1,  1, 192,  3,  0,  0,  0},    /* 1600*1200@60Hz */
     {1,   1,   2,  1050,  36,  3,  1680, 456, 104,   1,    1,   1,  1, 176,  6,  0,  1,  0},    /* 1680*1050@60Hz */
     //{1,   1,   2,  1200,  42,  3,  1920, 536, 136,   1,    1,   1,  1, 200,  6,  0,  1,  0},    /* 1920*1200@60Hz */
-    {1,   1,   2,  1200,  32,  3,  1920, 112,  48,   1,    1,   1,  1,  32,  6,  0,  1,  0},    /* 1920*1200@60Hz CVT (Reduced Blanking) */
+    {1,   1,   2,  1200,  32,  3,  1920, 112,  48,   1,    1,   1,  1,  32,  6,  0,  0,  0},    /* 1920*1200@60Hz CVT (Reduced Blanking) */
     {1,   1,   2,   480,  35, 10,   640, 144,  16,   1,    1,   1,  1,  96,  2,  0,  1,  1},   /* 640*480@60Hz CVT */
 
     {}/* User */
@@ -299,6 +322,20 @@ HI_VOID VOU_DRV_BoardInit(HI_VOID)
 
 }
 
+HI_VOID VOU_DRV_BoardDeInit(HI_VOID)
+{
+    HI_U32 i;
+
+    for (i = 0; i < HAL_DISP_CHANNEL_BUTT; i++)
+    {
+        #if 0
+        VOU_DRV_Close(i);
+        #endif
+    }
+
+    HAL_VOU_Exit();
+}
+
 static inline HI_BOOL VouDrvIsMultiIntf(VO_INTF_TYPE_E enMuxIntf)
 {
     HI_U32 u32Num, u32Tmp;
@@ -347,6 +384,15 @@ HI_VOID VOU_DRV_SetDevOutSync(HI_S32 VoDev, VO_INTF_SYNC_E enVoOutMode)
     return;
 }
 
+HI_BOOL VOU_DRV_GetDevEnable(HI_S32 VoDev)
+{
+    HI_BOOL bIntfEn;
+    
+    HAL_DISP_GetIntfEnable(VoDev, &bIntfEn);
+    
+    return bIntfEn;
+}
+
 /* 设置P制和N制 */
 HI_VOID VOU_DRV_DateSetting(VO_DEV VoDev, VO_INTF_SYNC_E enOutSync)
 {
@@ -372,6 +418,31 @@ HI_VOID VOU_DRV_DateSetting(VO_DEV VoDev, VO_INTF_SYNC_E enOutSync)
     HAL_DISP_SetIntfSyncInv(HAL_DISP_INTF_CVBS,&stDispSync);
     return;
 }
+
+HI_VOID VOU_DRV_HDateSetting(HI_S32 VoDev, VO_INTF_SYNC_E enOutSync)
+{
+    return;
+}
+
+HI_VOID VOU_DRV_GammaConfig(HI_S32 VoDev)
+{
+    if (-1 == g_stCoefAddr.u32Gam)
+    {
+        return;
+    }
+    HAL_DISP_SetGammaAddr(VoDev, g_stCoefAddr.u32Gam);
+    HAL_DISP_SetDispParaUpd(VoDev, HAL_DISP_COEFMODE_GAM);
+
+    return;
+}
+
+HI_VOID VOU_DRV_GammaEnable(HI_S32 VoDev, HI_BOOL bEnable)
+{
+    HAL_DISP_SetGammaEnable(VoDev, bEnable);
+
+    return;
+}
+
 
 /* interrupt relative                                                       */
 HI_VOID VOU_DRV_DevIntEnable(VO_DEV VoDev, HI_BOOL Enable)
@@ -415,9 +486,30 @@ HI_VOID VOU_DRV_DevIntEnable(VO_DEV VoDev, HI_BOOL Enable)
     return;
 }
 
+HI_VOID VOU_DRV_IntClear(VOU_INT_MASK_E IntType)
+{
+    HAL_DISP_ClearIntStatus(IntType);
+    
+    return;
+}
+
+HI_VOID VOU_DRV_IntDisableAll(HI_VOID)
+{
+    HAL_DISP_ClrIntMask(VOU_INTREPORT_ALL);
+
+    return;
+}
+
 HI_VOID VOU_DRV_IntSetMode(HI_S32 VoDev, VOU_INT_MODE_E IntMode)
 {
     HAL_DISP_SetVtThdMode(VoDev, IntMode);
+
+    return;
+}
+
+HI_VOID VOU_DRV_IntSetVTTH(HI_S32 VoDev, HI_U32 Threshold)
+{
+    HAL_DISP_SetVtThd(VoDev, Threshold);
 
     return;
 }
@@ -427,6 +519,11 @@ HI_VOID VOU_DRV_LayerEnable(VO_LAYER VoLayer, HI_BOOL Enable)
     HAL_LAYER_EnableLayer(VoLayer, Enable);
     //HAL_LAYER_SetRegUp(VoLayer);
 
+    return;
+}
+
+HI_VOID VOU_DRV_SetLayerDdr(VO_LAYER VoLayer, VOU_LAYER_DDR_E enDdrSelId)
+{
     return;
 }
 
@@ -561,6 +658,43 @@ HI_S32 VOU_DRV_GraphicsSetCscCoef(VO_LAYER VoLayer)
     return HI_SUCCESS;
 }
 
+HI_VOID VOU_DRV_LayerCSCEnable(VO_LAYER VoLayer, HI_BOOL bCscEn)
+{
+    HAL_LAYER_SetCscEn(VoLayer, bCscEn);
+    //HAL_LAYER_SetRegUp(VoLayer);
+
+    return;
+}
+
+
+
+HI_VOID VOU_DRV_LayerCSCConfig(VO_LAYER VoLayer,VO_CSC_S *pstCsc)
+{
+    HAL_CSC_MODE_E enCscMode;
+    CscCoef_S stCscCoef;    
+    switch (pstCsc->enCscMatrix)
+    {
+        case VO_CSC_MATRIX_IDENTITY :
+            enCscMode = HAL_CSC_MODE_BT601_TO_BT601;
+            break;    
+        case VO_CSC_MATRIX_BT601_TO_BT709 :
+            enCscMode = HAL_CSC_MODE_BT601_TO_BT709;
+            break;
+        case VO_CSC_MATRIX_BT709_TO_BT601 :
+            enCscMode = HAL_CSC_MODE_BT709_TO_BT601;
+            break;
+        default :
+            enCscMode = HAL_CSC_MODE_BT601_TO_BT601;
+            break;
+    }
+    VOU_DRV_CalcCscMatrix(pstCsc->u32Luma, pstCsc->u32Contrast, pstCsc->u32Hue, pstCsc->u32Satuature, enCscMode, &stCscCoef);
+
+    HAL_LAYER_SetCscCoef(VoLayer, &stCscCoef);
+    
+    return;
+}
+
+
 HI_VOID VOU_DRV_VGACscConfig(VO_CSC_S *pstVgaCSC)
 {
     HAL_CSC_MODE_E enCscMode;
@@ -583,6 +717,13 @@ HI_VOID VOU_DRV_VGACscConfig(VO_CSC_S *pstVgaCSC)
         enCscMode, &stCscCoef);
 
     HAL_DISP_SetIntfCscCoef(VO_INTF_VGA,&stCscCoef);    
+    return;
+}
+
+HI_VOID VOU_DRV_VGACscEn(HI_BOOL bVgaCscEn)
+{
+    //HAL_DISP_SetVgaCSCEn(bVgaCscEn);
+    
     return;
 }
 
@@ -748,20 +889,12 @@ HI_VOID VOU_DRV_SetDevClk(VO_DEV VoDev)
             }
             case VO_OUTPUT_1920x1200_60:
             {
-                #if 0
                 //193.25MHz
                 u32Fbdiv = 773;
                 u32Frac = 0;
                 u32Refdiv = 16;
                 u32Postdiv1 = 3;
                 u32Postdiv2 = 1;
-                #else
-                u32Fbdiv = 154;
-                u32Frac = 0;
-                u32Refdiv = 4;
-                u32Postdiv1 = 3;
-                u32Postdiv2 = 1;
-                #endif
                 break;
             }            
             case VO_OUTPUT_640x480_60:
@@ -780,7 +913,14 @@ HI_VOID VOU_DRV_SetDevClk(VO_DEV VoDev)
                 return ;
             }
         }
-       
+
+        //printf("s32Pll %d, ", s32Pll);
+        //printf("u32Fbdiv %d, ", u32Fbdiv);
+        //printf("u32Frac %d, ", u32Frac);
+        //printf("u32Refdiv %d, ", u32Refdiv);
+        //printf("u32Postdiv1 %d, ", u32Postdiv1);
+        //printf("u32Postdiv2 %d\n", u32Postdiv2);
+        
         SYS_HAL_SetVoPllFbdiv(s32Pll, u32Fbdiv);
         SYS_HAL_SetVoPllFrac(s32Pll, u32Frac);
         SYS_HAL_SetVoPllRefdiv(s32Pll, u32Refdiv);
@@ -837,7 +977,13 @@ HI_VOID VOU_DRV_Open(HI_S32 VoDev)
     
 
     /* 设置接口相关特性*/
-
+    #if 0
+    if (VO_INTF_BT1120 & g_stHalDevCfg[VoDev].enIntfType)
+    {
+        HAL_DISP_SetIntfMuxSel(VoDev,VO_INTF_BT1120);        
+        HAL_DISP_SetIntfSyncInv(VO_INTF_BT1120,&stInv);
+    }
+    #endif
     memcpy(&stSyncInfo, &g_stSyncTiming[g_stHalDevCfg[VoDev].enOutSync], sizeof(stSyncInfo));    
     stInv.u32hs_inv = stSyncInfo.bIhs ? 1:0;    
     stInv.u32vs_inv = stSyncInfo.bIvs ? 1:0;
@@ -965,6 +1111,7 @@ HI_VOID VOU_DRV_Open(HI_S32 VoDev)
     {
         VOU_DRV_IntSetMode(VoDev, VOU_INT_MODE_FIELD);
         VOU_DRV_IntRegUpMode(VoDev, VOU_INT_MODE_FIELD);
+        //HAL_VIDEO_SetReadMode(VoDev, HAL_DISP_INTERLACE, HAL_DISP_INTERLACE);
 
         u16VtthLine = stSyncInfo.u16Vact - VOU_VTTH_WATERLINE;
     }
@@ -972,6 +1119,7 @@ HI_VOID VOU_DRV_Open(HI_S32 VoDev)
     {
         VOU_DRV_IntSetMode(VoDev, VOU_INT_MODE_FRAME);        
         VOU_DRV_IntRegUpMode(VoDev, VOU_INT_MODE_FRAME);
+        //HAL_VIDEO_SetReadMode(VoDev, HAL_DISP_PROGRESSIVE, HAL_DISP_PROGRESSIVE);
 
         if (0 == stSyncInfo.bIop)
         {
@@ -997,16 +1145,20 @@ HI_VOID VOU_DRV_Close(HI_S32 VoDev)
 {    
     HAL_DISP_SetIntfEnable(VoDev, HI_FALSE);
     HAL_DISP_SetRegUp(VoDev);
-    /* 等待更新完成 */
-    udelay(25 * 1000);
 
     if (VO_INTF_CVBS & g_stHalDevCfg[VoDev].enIntfType)
     {
         SYS_HAL_VouSdDacClkEn(HI_FALSE);
+        //SYS_HAL_VouDevClkEn(VoDev, HI_FALSE);
     }
-    if (VO_INTF_VGA & g_stHalDevCfg[VoDev].enIntfType)
+    else if (VO_INTF_VGA & g_stHalDevCfg[VoDev].enIntfType)
     {
         SYS_HAL_VouHdDacClkEn(HI_FALSE);
+        //SYS_HAL_VouDevClkEn(VoDev, HI_FALSE);
+    }
+    else
+    {
+
     }
 
     g_stHalDevCfg[VoDev].bEnable = HI_FALSE;
