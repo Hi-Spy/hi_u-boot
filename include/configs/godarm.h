@@ -33,10 +33,9 @@
 
 /* cpu_init configuration */
 #define HW_REG(a) (*(unsigned long *)(a))
-#define A9_AXI_SCALE_REG   0x20030028
 #define get_bus_clk()({\
 	unsigned long fbdiv, pstdiv1, pstdiv2, refdiv; \
-	unsigned long tmp_reg, foutvco, busclk;\
+	unsigned long tmp_reg, foutvco, foutpostdiv, busclk;\
 	tmp_reg = HW_REG(REG_CRG0_OFFSET);\
 	pstdiv1 = (tmp_reg >> 24) & 0x7;\
 	pstdiv2 = (tmp_reg >> 27) & 0x7;\
@@ -45,15 +44,8 @@
 	fbdiv = tmp_reg & 0xfff;\
 	foutvco = 24000000/refdiv;\
 	foutvco *= fbdiv;\
-	tmp_reg = HW_REG(A9_AXI_SCALE_REG);\
-	if ((tmp_reg & 0xc) == 4) {\
-		busclk = foutvco/6;\
-	} else if ((tmp_reg & 0xc) == 0x8) {\
-		busclk = foutvco/2;\
-	} else if ((tmp_reg & 0xc) == 0xc) {\
-		busclk = foutvco;\
-	} else\
-		busclk = foutvco/6;\
+	foutpostdiv = foutvco/(pstdiv1 * pstdiv2);\
+	busclk = foutpostdiv/6;\
 	busclk;\
 })
 

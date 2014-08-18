@@ -65,6 +65,16 @@
 
 #define USB_BUFSIZ	512
 
+#ifndef CONFIG_USB_HUB_MIN_POWER_ON_DELAY
+#define CONFIG_USB_HUB_MIN_POWER_ON_DELAY       3000
+#endif
+
+#if defined CONFIG_USB_XHCI && !defined CONFIG_USB_OHCI
+static int xhci_enable = 1;
+#else
+static int xhci_enable;
+#endif
+
 static struct usb_device usb_dev[USB_MAX_DEVICE];
 static int dev_index;
 static int running;
@@ -76,7 +86,7 @@ char usb_started; /* flag for the started/stopped USB status */
 /**********************************************************************
  * some forward declerations...
  */
-void usb_scan_devices(void);
+int usb_scan_devices(void);
 void usb_scan_devices_debug(void);
 
 int usb_hub_probe(struct usb_device *dev, int ifnum);
@@ -101,6 +111,7 @@ inline void wait_ms(unsigned long ms)
 int usb_init(void)
 {
 	int result;
+	int ret;
 
 	running = 0;
 	dev_index = 0;
@@ -108,13 +119,25 @@ int usb_init(void)
 	usb_hub_reset();
 	/* init low_level USB */
 	printf("USB:   ");
-	result = usb_lowlevel_init();
+	if (xhci_enable) {
+#ifdef CONFIG_USB_XHCI
+		result = usb_lowlevel_init_ex();
+#endif
+		USB_PRINTF("usb init...\n");
+	} else {
+#ifdef CONFIG_USB_OHCI
+		result = usb_lowlevel_init();
+#endif
+		USB_PRINTF("usb init...\n");
+	}
 	/* if lowlevel init is OK, scan the bus for devices
 	 * i.e. search HUBs and configure them */
 	if (result == 0) {
 		printf("scanning bus for devices... ");
 		running = 1;
-		usb_scan_devices();
+		ret = usb_scan_devices();
+		if (ret == NO_DEV_FD)
+			return ret;
 		usb_started = 1;
 		return 0;
 	} else {
@@ -133,7 +156,17 @@ int usb_init_debug(void)
 	asynch_allowed = 1;
 	usb_hub_reset();
 	/* init low_level USB */
-	result = usb_lowlevel_init();
+	if (xhci_enable) {
+#ifdef CONFIG_USB_XHCI
+		result = usb_lowlevel_init_ex();
+#endif
+		USB_PRINTF("usb init debug\n");
+	} else {
+#ifdef CONFIG_USB_OHCI
+		result = usb_lowlevel_init();
+#endif
+		USB_PRINTF("usb init debug\n");
+	}
 	/* if lowlevel init is OK, scan the bus for devices
 	 * i.e. search HUBs and configure them */
 	if (result == 0) {
@@ -157,7 +190,20 @@ int usb_stop(void)
 		asynch_allowed = 1;
 		usb_started = 0;
 		usb_hub_reset();
-		res = usb_lowlevel_stop();
+		if (xhci_enable) {
+#ifdef CONFIG_USB_XHCI
+			res = usb_lowlevel_stop_ex();
+#endif
+			USB_PRINTF("usb stop end\n");
+#if defined CONFIG_USB_XHCI && defined CONFIG_USB_OHCI
+			xhci_enable = 0;
+#endif
+		} else {
+#ifdef CONFIG_USB_OHCI
+			res = usb_lowlevel_stop();
+#endif
+			USB_PRINTF("usb stop end\n");
+		}
 	}
 	return res;
 }
@@ -183,7 +229,15 @@ void usb_disable_asynch(int disable)
 int usb_submit_int_msg(struct usb_device *dev, unsigned long pipe,
 			void *buffer, int transfer_len, int interval)
 {
+	if (xhci_enable) {
+#ifdef CONFIG_USB_XHCI
+		return submit_int_msg_ex(dev, pipe, buffer,
+				transfer_len, interval);
+#endif
+	}
+#ifdef CONFIG_USB_OHCI
 	return submit_int_msg(dev, pipe, buffer, transfer_len, interval);
+#endif
 }
 
 /*
@@ -216,7 +270,20 @@ int usb_control_msg(struct usb_device *dev, unsigned int pipe,
 		   request, requesttype, value, index, size);
 	dev->status = USB_ST_NOT_PROC; /*not yet processed */
 
-	submit_control_msg(dev, pipe, data, size, &setup_packet);
+	if (xhci_enable) {
+#ifdef CONFIG_USB_XHCI
+		if (submit_control_msg_ex(dev, pipe, data, size, &setup_packet)
+				== -ETIMEDOUT)
+			return -ETIMEDOUT;
+#endif
+		USB_PRINTF("FUNC=%s LINE=%d\n", __func__, __LINE__);
+	} else {
+#ifdef CONFIG_USB_OHCI
+		submit_control_msg(dev, pipe, data, size, &setup_packet);
+#endif
+		USB_PRINTF("FUNC=%s LINE=%d\n", __func__, __LINE__);
+	}
+
 	if (timeout == 0)
 		return (int)size;
 
@@ -248,7 +315,18 @@ int usb_bulk_msg(struct usb_device *dev, unsigned int pipe,
 	if (len < 0)
 		return -1;
 	dev->status = USB_ST_NOT_PROC; /*not yet processed */
-	submit_bulk_msg(dev, pipe, data, len);
+	if (xhci_enable) {
+#ifdef CONFIG_USB_XHCI
+		if (submit_bulk_msg_ex(dev, pipe, data, len) == -ETIMEDOUT)
+			return -ETIMEDOUT;
+#endif
+		USB_PRINTF("usb_bulk_msg_ex...\n");
+	} else {
+#ifdef CONFIG_USB_OHCI
+		submit_bulk_msg(dev, pipe, data, len);
+#endif
+		USB_PRINTF("usb_bulk_msg...\n");
+	}
 	while (timeout--) {
 		if (!((volatile unsigned long)dev->status & USB_ST_NOT_PROC))
 			break;
@@ -300,21 +378,21 @@ usb_set_maxpacket_ep(struct usb_device *dev, struct usb_endpoint_descriptor *ep)
 		dev->epmaxpacketout[b] = ep->wMaxPacketSize;
 		dev->epmaxpacketin[b] = ep->wMaxPacketSize;
 		USB_PRINTF("##Control EP epmaxpacketout/in[%d] = %d\n",
-			   b, dev->epmaxpacketin[b]);
+				b, dev->epmaxpacketin[b]);
 	} else {
 		if ((ep->bEndpointAddress & 0x80) == 0) {
 			/* OUT Endpoint */
 			if (ep->wMaxPacketSize > dev->epmaxpacketout[b]) {
 				dev->epmaxpacketout[b] = ep->wMaxPacketSize;
 				USB_PRINTF("##EP epmaxpacketout[%d] = %d\n",
-					   b, dev->epmaxpacketout[b]);
+						b, dev->epmaxpacketout[b]);
 			}
 		} else {
 			/* IN Endpoint */
 			if (ep->wMaxPacketSize > dev->epmaxpacketin[b]) {
 				dev->epmaxpacketin[b] = ep->wMaxPacketSize;
 				USB_PRINTF("##EP epmaxpacketin[%d] = %d\n",
-					   b, dev->epmaxpacketin[b]);
+						b, dev->epmaxpacketin[b]);
 			}
 		} /* if out */
 	} /* if control */
@@ -345,7 +423,7 @@ int usb_parse_config(struct usb_device *dev, unsigned char *buffer, int cfgno)
 	int index, ifno, epno, curr_if_num;
 	int i;
 	unsigned char *ch;
-
+	struct usb_interface *if_desc = NULL;
 	ifno = -1;
 	epno = -1;
 	curr_if_num = -1;
@@ -393,6 +471,25 @@ int usb_parse_config(struct usb_device *dev, unsigned char *buffer, int cfgno)
 			le16_to_cpus(&(dev->config.if_desc[ifno].ep_desc[epno].\
 							       wMaxPacketSize));
 			USB_PRINTF("if %d, ep %d\n", ifno, epno);
+			break;
+		case USB_DT_SS_ENDPOINT_COMP:
+			if (head->bLength != USB_DT_SS_EP_COMP_SIZE) {
+				printf("ERROR: Invalid USB EPC length (%d)\n",
+					head->bLength);
+				break;
+			}
+			if (index + USB_DT_SS_EP_COMP_SIZE >
+			    dev->config.desc.wTotalLength) {
+				puts("USB EPC descriptor overflowed buffer!\n");
+				break;
+			}
+			if (ifno < 0 || epno < 0) {
+				puts("EPC descriptor out of order!\n");
+				break;
+			}
+			if_desc = &dev->config.if_desc[ifno];
+			memcpy(&if_desc->ss_ep_comp_desc[epno], head,
+				USB_DT_SS_EP_COMP_SIZE);
 			break;
 		default:
 			if (head->bLength == 0)
@@ -492,6 +589,7 @@ int usb_get_configuration_no(struct usb_device *dev,
 	result = usb_get_descriptor(dev, USB_DT_CONFIG, cfgno, buffer, tmp);
 	USB_PRINTF("get_conf_no %d Result %d, wLength %d\n",
 		   cfgno, result, tmp);
+	config->wTotalLength = tmp; /* validated, with CPU byte order */
 	return result;
 }
 
@@ -793,13 +891,28 @@ int usb_new_device(struct usb_device *dev)
 {
 	int addr, err;
 	int tmp;
+	int ret;
 	unsigned char tmpbuf[USB_BUFSIZ];
-
+#ifdef CONFIG_USB_XHCI
+	/*
+	 * Allocate usb 3.0 device context.
+	 * USB 3.0 (xHCI) protocol tries to allocate device slot
+	 * and related data structures first. This call does that.
+	 * Refer to sec 4.3.2 in xHCI spec rev1.0
+	 */
+	if (xhci_enable) {
+		if (usb_alloc_device(dev)) {
+			printf("Cannot allocate device context" \
+					"to get SLOT_ID\n");
+			return -1;
+		}
+	}
+#endif
 	/* We still haven't set the Address yet */
 	addr = dev->devnum;
 	dev->devnum = 0;
 
-#ifdef CONFIG_LEGACY_USB_INIT_SEQ
+#if defined(CONFIG_LEGACY_USB_INIT_SEQ) && !defined(CONFIG_USB_XHCI)
 	/* this is the old and known way of initializing devices, it is
 	 * different than what Windows and Linux are doing. Windows and Linux
 	 * both retrieve 64 bytes while reading the device descriptor
@@ -841,18 +954,31 @@ int usb_new_device(struct usb_device *dev)
 	dev->epmaxpacketin[0] = 64;
 	dev->epmaxpacketout[0] = 64;
 
-	err = usb_get_descriptor(dev, USB_DT_DEVICE, 0, desc, 64);
-	if (err < 0) {
-		USB_PRINTF("usb_new_device: usb_get_descriptor() failed\n");
-		return 1;
+	/*
+	 * XHCI needs to issue a Address device command to setup
+	 * proper device context structures, before it can interact
+	 * with the device. So a get_descriptor will fail before any
+	 * of that is done for XHCI unlike EHCI.
+	 */
+	if (!xhci_enable) {
+		err = usb_get_descriptor(dev, USB_DT_DEVICE, 0, desc, 64);
+		if (err < 0) {
+			USB_PRINTF("usb_new_device: " \
+					"usb_get_descriptor() failed\n");
+			return 1;
+		}
+
+		dev->descriptor.bMaxPacketSize0 = desc->bMaxPacketSize0;
+		/*
+		 * Fetch the device class, driver can use this info
+		 * to differentiate between HUB and DEVICE.
+		 */
+		dev->descriptor.bDeviceClass = desc->bDeviceClass;
 	}
-
-	dev->descriptor.bMaxPacketSize0 = desc->bMaxPacketSize0;
-
-	/* find the port number we're at */
 	if (parent) {
 		int j;
 
+		/* find the port number we're at */
 		for (j = 0; j < parent->maxchild; j++) {
 			if (parent->children[j] == dev) {
 				port = j;
@@ -948,14 +1074,17 @@ int usb_new_device(struct usb_device *dev)
 	USB_PRINTF("Product      %s\n", dev->prod);
 	USB_PRINTF("SerialNumber %s\n", dev->serial);
 	/* now prode if the device is a hub */
-	usb_hub_probe(dev, 0);
+	ret = usb_hub_probe(dev, 0);
+	if (ret)
+		return ret;
 	return 0;
 }
 
 /* build device Tree  */
-void usb_scan_devices(void)
+int usb_scan_devices(void)
 {
 	int i;
+	int ret;
 	struct usb_device *dev;
 
 	/* first make all devices unknown */
@@ -966,17 +1095,22 @@ void usb_scan_devices(void)
 	dev_index = 0;
 	/* device 0 is always present (root hub, so let it analyze) */
 	dev = usb_alloc_new_device();
-	if (usb_new_device(dev))
+
+	ret = usb_new_device(dev);
+	if (ret == NO_DEV_FD)
+		return ret;
+	if (ret)
 		printf("No USB Device found\n");
 	else
 		printf("%d USB Device(s) found\n", dev_index);
+
 	/* insert "driver" if possible */
 #ifdef CONFIG_USB_KEYBOARD
 	drv_usb_kbd_init();
 	USB_PRINTF("scan end\n");
 #endif
+	return 0;
 }
-
 void usb_scan_devices_debug(void)
 {
 	int i;
@@ -1062,6 +1196,11 @@ static void usb_hub_power_on(struct usb_hub_device *hub)
 {
 	int i;
 	struct usb_device *dev;
+	unsigned pgood_delay = hub->desc.bPwrOn2PwrGood * 2;
+	struct usb_port_status portsts;
+	unsigned short portstatus;
+	int ret;
+	int delay;
 
 	dev = hub->pusb_dev;
 	/* Enable power to the ports */
@@ -1071,6 +1210,37 @@ static void usb_hub_power_on(struct usb_hub_device *hub)
 		USB_HUB_PRINTF("port %d returns %lX\n", i + 1, dev->status);
 		wait_ms(hub->desc.bPwrOn2PwrGood * 2);
 	}
+	for (i = 0; i < dev->maxchild; i++) {
+		ret = usb_get_port_status(dev, i + 1, &portsts);
+		if (ret < 0) {
+			debug("port %d: get_port_status failed\n", i + 1);
+			continue;
+		}
+
+		/*
+		 * Check to confirm the state of Port Power:
+		 * xHCI says "After modifying PP, s/w shall read
+		 * PP and confirm that it has reached the desired state
+		 * before modifying it again, undefined behavior may occur
+		 * if this procedure is not followed".
+		 * EHCI doesn't say anything like this, but no harm in keeping
+		 * this.
+		 */
+		portstatus = le16_to_cpu(portsts.wPortStatus);
+		if (portstatus & (USB_PORT_STAT_POWER << 1)) {
+			debug("port %d: Port power change failed\n", i + 1);
+			continue;
+		}
+	}
+
+	for (i = 0; i < dev->maxchild; i++) {
+		usb_set_port_feature(dev, i + 1, USB_PORT_FEAT_POWER);
+		debug("port %d returns %lX\n", i + 1, dev->status);
+	}
+
+	/* Wait for power to become stable */
+	delay = max(pgood_delay, CONFIG_USB_HUB_MIN_POWER_ON_DELAY);
+	wait_ms(delay);
 }
 
 void usb_hub_reset(void)
@@ -1091,12 +1261,25 @@ struct usb_hub_device *usb_hub_allocate(void)
 
 static inline char *portspeed(int portstatus)
 {
-	if (portstatus & (1 << USB_PORT_FEAT_HIGHSPEED))
-		return "480 Mb/s";
-	else if (portstatus & (1 << USB_PORT_FEAT_LOWSPEED))
-		return "1.5 Mb/s";
-	else
-		return "12 Mb/s";
+	char *speed_str;
+
+	switch (portstatus & USB_PORT_STAT_SPEED) {
+	case USB_PORT_STAT_SUPER_SPEED:
+		speed_str = "5 Gb/s";
+		break;
+	case USB_PORT_STAT_HIGH_SPEED:
+		speed_str = "480 Mb/s";
+		break;
+	case USB_PORT_STAT_LOW_SPEED:
+		speed_str = "1.5 Mb/s";
+		break;
+	default:
+		speed_str = "12 Mb/s";
+		break;
+	}
+
+	return speed_str;
+
 }
 
 static int hub_port_reset(struct usb_device *dev, int port,
@@ -1194,15 +1377,24 @@ void usb_hub_port_connect_change(struct usb_device *dev, int port)
 	/* Allocate a new device struct for it */
 	usb = usb_alloc_new_device();
 
-	if (portstatus & USB_PORT_STAT_HIGH_SPEED)
+	switch (portstatus & USB_PORT_STAT_SPEED) {
+	case USB_PORT_STAT_SUPER_SPEED:
+		usb->speed = USB_SPEED_SUPER;
+		break;
+	case USB_PORT_STAT_HIGH_SPEED:
 		usb->speed = USB_SPEED_HIGH;
-	else if (portstatus & USB_PORT_STAT_LOW_SPEED)
+		break;
+	case USB_PORT_STAT_LOW_SPEED:
 		usb->speed = USB_SPEED_LOW;
-	else
+		break;
+	default:
 		usb->speed = USB_SPEED_FULL;
+		break;
+	}
 
 	dev->children[port] = usb;
 	usb->parent = dev;
+	usb->portnr = port + 1;
 	/* Run it through the hoops (find a driver, etc) */
 	if (usb_new_device(usb)) {
 		/* Woops, disable the port */
@@ -1218,6 +1410,7 @@ int usb_hub_configure(struct usb_device *dev)
 	struct usb_hub_descriptor *descriptor;
 	struct usb_hub_status *hubsts;
 	int i;
+	int usb_xhci_flag = 1;
 	struct usb_hub_device *hub;
 
 	/* "allocate" Hub device */
@@ -1349,6 +1542,8 @@ int usb_hub_configure(struct usb_device *dev)
 		if (portchange & USB_PORT_STAT_C_CONNECTION) {
 			USB_HUB_PRINTF("port %d connection change\n", i + 1);
 			usb_hub_port_connect_change(dev, i);
+			/*whether usb xhci or ohci*/
+			usb_xhci_flag = 0;
 		}
 		if (portchange & USB_PORT_STAT_C_ENABLE) {
 			USB_HUB_PRINTF("port %d enable change, status %x\n",
@@ -1387,6 +1582,15 @@ int usb_hub_configure(struct usb_device *dev)
 						USB_PORT_FEAT_C_RESET);
 		}
 	} /* end for i all ports */
+
+#if defined CONFIG_USB_XHCI && defined CONFIG_USB_OHCI
+	if (usb_xhci_flag && !xhci_enable) {
+		usb_stop();
+		xhci_enable = 1;
+		USB_HUB_PRINTF("OHCI has not found the usb device, try XHCI\n");
+		return NO_DEV_FD;
+	}
+#endif
 
 	return 0;
 }

@@ -18,6 +18,8 @@
 #include "vmode.h"
 #include "siitxapidefs.h"
 #include "mpi_hdmi.h"
+#include <common.h>
+
 
 //---------------------------------------------------------------------
 
@@ -37,7 +39,7 @@ static void hdmiPhyInit(void)
     HDMI_REG_WRITE(HDMI_TX_PHY_ADDR + 0x08, 0x24);
     HDMI_REG_WRITE(HDMI_TX_PHY_ADDR + 0x14, 0x12);
     HDMI_REG_WRITE(HDMI_TX_PHY_ADDR + 0x20, 0x40);
-    HDMI_REG_WRITE(HDMI_TX_PHY_ADDR + 0x34, 0x00);
+    HDMI_REG_WRITE(HDMI_TX_PHY_ADDR + 0x34, 0x00);  
 }
 
 HI_S32 SI_TX_PHY_PowerDown(HI_BOOL bPwdown)
@@ -115,8 +117,9 @@ HI_S32 SI_TX_PHY_EnableHdmiOutput(void)
     return HI_SUCCESS;
 }
 
-void HW_ResetHDMITX(void)
+void HW_ResetHDMITX(unsigned int dev)
 {
+    volatile unsigned int i;
 #if 0    
     HDMIPrint("--> HW_ResetHDMITX.\n");
     HdmiHardwareReset(1);
@@ -124,10 +127,33 @@ void HW_ResetHDMITX(void)
     HdmiHardwareReset(0);
     DelayMS(50);
 #else
+    HDMI_REG_WRITE(HDMI_HARDWARE_RESET_ADDR, 0x3);/* enable hdmi clk */
+    DelayMS(5);
+    #if 0
     HDMI_REG_WRITE(HDMI_HARDWARE_RESET_ADDR, 0x3fc);/* enable hdmi clk */
+    #else
+    RegSetBit(0, 0, HDMI_HARDWARE_RESET_ADDR);
+    RegSetBit(0, 1, HDMI_HARDWARE_RESET_ADDR);
+
+    for (i = 2; i < 10; i++)
+    {
+        RegSetBit(1, i, HDMI_HARDWARE_RESET_ADDR);
+    }
+
+    /* 如果是DHD1需要选择VPLL1时钟源 */
+    if (1 == dev)
+    {
+        RegSetBit(1, 11, HDMI_HARDWARE_RESET_ADDR);
+    }
+    #endif
+    DelayMS(5);
 #endif
     
     hdmiPhyInit();
+    DelayMS(1);
+
+    WriteByteHDMITXP0(TX_SYS_CTRL1_ADDR, 0x35);
+
 }
 
 //-------------------------------------------------------------------
@@ -150,30 +176,42 @@ void ReleaseHDMITX_SWReset( HI_U8 SoftReset )
 //-------------------------------------------------------------------
 void SW_ResetHDMITX(void)
 {
-    HI_U8 TimeOut = 255;
-    HI_U8 RegVal;
-
+    //HI_U8 TimeOut = 255;
+    HI_U8 TimeOut = 20;
+    //HI_U8 RegVal;
+#if 1
     HDMIPrint("--> SW_ResetHDMITX.\n");
 
     //power down hdmi
+    #if 0
     RegVal = ReadByteHDMITXP0(TX_SYS_CTRL1_ADDR);
     RegVal &= ~ BIT_TX_PD;
     WriteByteHDMITXP0 (TX_SYS_CTRL1_ADDR, RegVal);         // 0x35->0x37 GVG
+    #endif
     
-    while ( !siiIsTClockStable() && TimeOut-- )
+    while ( !siiIsTClockStable() && --TimeOut )
     {
-        DelayMS(20);         // wait for input pixel clock to stabilze
+        DelayMS(1);         // wait for input pixel clock to stabilze
     }
         
     if (TimeOut)
     {
-        AssertHDMITX_SWReset(BIT_TX_SW_RST | BIT_TX_FIFO_RST);
-        DelayMS(1);
-        ReleaseHDMITX_SWReset(BIT_TX_SW_RST | BIT_TX_FIFO_RST);
-        DelayMS(1);          // allow TCLK (sent to Rx across the HDMS link) to stabilize
+        HDMIPrint("--> clk unstable time out.\n");
     }
+    
+    AssertHDMITX_SWReset(BIT_TX_SW_RST | BIT_TX_FIFO_RST);
+    DelayMS(1);
+    ReleaseHDMITX_SWReset(BIT_TX_SW_RST | BIT_TX_FIFO_RST);
+    DelayMS(1);          // allow TCLK (sent to Rx across the HDMS link) to stabilize
+
+#else
+    AssertHDMITX_SWReset(BIT_TX_SW_RST | BIT_TX_FIFO_RST);
+    DelayMS(1);
+    ReleaseHDMITX_SWReset(BIT_TX_SW_RST | BIT_TX_FIFO_RST);
+    DelayMS(1);          // allow TCLK (sent to Rx across the HDMS link) to stabilize
 
     DelayMS(1);
+#endif
 }
 //-------------------------------------------------------------------
 void WakeUpHDMITX(void)
@@ -213,12 +251,15 @@ void TX_SetHDMIMode(HI_U8 Enabled)
 
 inline void DelayMS (HI_U16 count)
 {
-    //usleep(count*1000);
+    udelay(count*1000);
+
+#if 0
     volatile HI_U32 i = 0;
 
     while(i<count * 1000)
     {
       i++;
     }
+#endif
 }
 

@@ -84,7 +84,26 @@
 #define USB_SPEED_FULL		0x0	/* 12Mbps */
 #define USB_SPEED_LOW		0x1	/* 1.5Mbps */
 #define USB_SPEED_HIGH		0x2	/* 480Mbps */
-#define USB_SPEED_RESERVED	0x3
+#define USB_SPEED_SUPER		0x3	/* 5Gbps */
+#define USB_SPEED_RESERVED	0x4
+/*
+ * bmRequestType: USB Device Requests, table 9.2 USB 2.0 spec.
+ * (shifted) direction/type/recipient.
+ */
+#define DeviceRequest \
+	((USB_DIR_IN | USB_TYPE_STANDARD | USB_RECIP_DEVICE) << 8)
+
+#define DeviceOutRequest \
+	((USB_DIR_OUT | USB_TYPE_STANDARD | USB_RECIP_DEVICE) << 8)
+
+#define InterfaceRequest \
+	((USB_DIR_IN | USB_TYPE_STANDARD | USB_RECIP_INTERFACE) << 8)
+
+#define EndpointRequest \
+	((USB_DIR_IN | USB_TYPE_STANDARD | USB_RECIP_INTERFACE) << 8)
+
+#define EndpointOutRequest \
+	((USB_DIR_OUT | USB_TYPE_STANDARD | USB_RECIP_INTERFACE) << 8)
 
 /* Descriptor types */
 #define USB_DT_DEVICE        0x01
@@ -214,6 +233,16 @@
 #define USB_PORT_FEAT_C_SUSPEND      18
 #define USB_PORT_FEAT_C_OVER_CURRENT 19
 #define USB_PORT_FEAT_C_RESET        20
+/*
+ * Changes to Port feature numbers for Super speed,
+ * from USB 3.0 spec Table 10-8
+ */
+#define USB_SS_PORT_FEAT_U1_TIMEOUT	23
+#define USB_SS_PORT_FEAT_U2_TIMEOUT	24
+#define USB_SS_PORT_FEAT_C_LINK_STATE	25
+#define USB_SS_PORT_FEAT_C_CONFIG_ERROR	26
+#define USB_SS_PORT_FEAT_BH_RESET	28
+#define USB_SS_PORT_FEAT_C_BH_RESET	29
 
 /* wPortStatus bits */
 #define USB_PORT_STAT_CONNECTION    0x0001
@@ -224,8 +253,18 @@
 #define USB_PORT_STAT_POWER         0x0100
 #define USB_PORT_STAT_LOW_SPEED     0x0200
 #define USB_PORT_STAT_HIGH_SPEED    0x0400	/* support for EHCI */
+#define USB_PORT_STAT_SUPER_SPEED   0x0600	/* faking support to XHCI */
 #define USB_PORT_STAT_SPEED	\
 	(USB_PORT_STAT_LOW_SPEED | USB_PORT_STAT_HIGH_SPEED)
+
+/*
+ * Changes to wPortStatus bit field in USB 3.0
+ * See USB 3.0 spec Table 10-11
+ */
+#define USB_SS_PORT_STAT_LINK_STATE	0x01e0
+#define USB_SS_PORT_STAT_POWER		0x0200
+#define USB_SS_PORT_STAT_SPEED		0x1c00
+#define USB_SS_PORT_STAT_SPEED_5GBPS	0x0000
 
 /* wPortChange bits */
 #define USB_PORT_STAT_C_CONNECTION  0x0001
@@ -233,6 +272,14 @@
 #define USB_PORT_STAT_C_SUSPEND     0x0004
 #define USB_PORT_STAT_C_OVERCURRENT 0x0008
 #define USB_PORT_STAT_C_RESET       0x0010
+
+/*
+ * Changes to wPortChange bit fields in USB 3.0
+ * See USB 3.0 spec Table 10-12
+ */
+#define USB_SS_PORT_STAT_C_BH_RESET	0x0020
+#define USB_SS_PORT_STAT_C_LINK_STATE	0x0040
+#define USB_SS_PORT_STAT_C_CONFIG_ERROR	0x0080
 
 /* wHubCharacteristics (masks) */
 #define HUB_CHAR_LPSM               0x0003

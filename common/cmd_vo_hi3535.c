@@ -33,7 +33,7 @@ extern int start_vo(unsigned int dev, unsigned int type, unsigned int sync);
 extern int stop_vo(unsigned int dev);
 extern int start_gx(unsigned int layer, unsigned addr, unsigned int strd, unsigned int x, unsigned int y, unsigned int w, unsigned int h);
 extern int stop_gx(unsigned int layer);
-extern int hdmi_display(unsigned int HdFmt, unsigned int input, unsigned int output);
+extern int hdmi_display(unsigned int dev, unsigned int vosync, unsigned int input, unsigned int output);
 extern void hdmi_stop(void);
 
 #define VOU_DEV_MAX_NUM         3
@@ -142,7 +142,7 @@ int do_startvo(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
     if (type & VO_INTF_HDMI)
     {
         gs_aInterfaceType[dev] =  VO_INTF_HDMI;
-        hdmi_display(sync, 2, 2);
+        hdmi_display(dev, sync, 2, 2);
     }
 
     printf("dev %d opened!\n", dev);
@@ -168,13 +168,13 @@ int do_stopvo(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
         return -1;
     }
 
-    stop_vo(dev);
-
     if (gs_aInterfaceType[dev] & VO_INTF_HDMI)
     {
         gs_aInterfaceType[dev] = 0;
         hdmi_stop();
     }
+
+    stop_vo(dev);
 
     printf("dev %d closed!\n", dev);
 
@@ -297,4 +297,5 @@ U_BOOT_CMD(
 	"\t-<dev> : 0~1(HD0~1), 2(SD0)\n"
 	"\t-<color>: rgb color space\n"
 	);
+
 

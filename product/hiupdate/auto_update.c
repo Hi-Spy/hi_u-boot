@@ -43,8 +43,8 @@
 #endif
 
 #if defined CONFIG_AUTO_USB_UPDATE
-#ifndef CONFIG_USB_OHCI
-#error "should have defined CONFIG_USB_OHCI"
+#if !defined CONFIG_USB_OHCI && !defined CONFIG_USB_XHCI
+#error "should have defined CONFIG_USB_OHCI or CONFIG_USB_XHCI"
 #endif
 #ifndef CONFIG_USB_STORAGE
 #error "should have defined CONFIG_USB_STORAGE"
@@ -90,7 +90,7 @@ static struct medium_interface s_intf[MAX_UPDATE_INTF] = {
 
 /* layout of the FLASH. ST = start address, ND = end address. */
 #define AU_FL_FIRMWARE_ST	0x0
-#define AU_FL_FIRMWARE_ND	0xFFFFF
+#define AU_FL_FIRMWARE_ND	0x7FFFF
 #define AU_FL_KERNEL_ST		0x100000
 #define AU_FL_KERNEL_ND		0x5FFFFF
 #define AU_FL_ROOTFS_ST		0x600000
@@ -424,7 +424,7 @@ int do_auto_update(void)
 			if (fat_register_device(stor_dev, 1) != 0) {
 				debug("Unable to use %s %d:%d for fatls\n",
 						s_intf[j].name,
-						au_usb_stor_curr_dev,
+						au_stor_curr_dev,
 						1);
 				continue;
 			}

@@ -77,7 +77,7 @@
 #define __USBDESCRIPTORS_H__
 
 #include <asm/types.h>
-
+#include <linux/usb/ch9.h>
 /*
  * communications class types
  *
@@ -191,7 +191,7 @@
 /*
  * standard usb descriptor structures
  */
-
+#if 0
 struct usb_endpoint_descriptor {
 	u8 bLength;
 	u8 bDescriptorType;	/* 0x5 */
@@ -200,7 +200,7 @@ struct usb_endpoint_descriptor {
 	u16 wMaxPacketSize;
 	u8 bInterval;
 } __attribute__ ((packed));
-
+#endif
 struct usb_interface_descriptor {
 	u8 bLength;
 	u8 bDescriptorType;	/* 0x04 */

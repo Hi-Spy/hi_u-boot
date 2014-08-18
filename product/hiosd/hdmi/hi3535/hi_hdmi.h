@@ -53,7 +53,7 @@ typedef enum hiHDMI_ASPECT_RATIO_E
 }HI_HDMI_ASPECT_RATIO_E;
 
 
-int hdmi_display(unsigned int HdFmt, unsigned int input, unsigned int output);
+int hdmi_display(unsigned int dev, unsigned int vosync, unsigned int input, unsigned int output);
 void hdmi_stop(void);
 
 #endif

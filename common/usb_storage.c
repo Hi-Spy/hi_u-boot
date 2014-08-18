@@ -136,6 +136,7 @@ struct us_data {
 	struct usb_device *pusb_dev;	 /* this usb_device */
 
 	unsigned int	flags;			/* from filter initially */
+#       define USB_READY        (1 << 0)
 	unsigned char	ifnum;			/* interface number */
 	unsigned char	ep_in;			/* in endpoint */
 	unsigned char	ep_out;			/* out ....... */
@@ -586,8 +587,10 @@ int usb_stor_CBI_get_status(ccb *srb, struct us_data *us)
 	int timeout;
 
 	us->ip_wanted = 1;
+#if 0
 	submit_int_msg(us->pusb_dev, us->irqpipe,
 			(void *) &us->ip_data, us->irqmaxp, us->irqinterval);
+#endif
 	timeout = 1000;
 	while (timeout--) {
 		if ((volatile int *) us->ip_wanted == 0)
@@ -651,19 +654,24 @@ int usb_stor_BBB_transport(ccb *srb, struct us_data *us)
 	unsigned char *ptr;
 	int index;
 #endif
-
 	dir_in = US_DIRECTION(srb->cmd[0]);
 
 	/* COMMAND phase */
 	USB_STOR_PRINTF("COMMAND phase\n");
 	result = usb_stor_BBB_comdat(srb, us);
+#ifdef CONFIG_USB_XHCI
+	if (result == -ETIMEDOUT)
+		return 0;
+#endif
 	if (result < 0) {
 		USB_STOR_PRINTF("failed to send CBW status %ld\n",
 			us->pusb_dev->status);
 		usb_stor_BBB_reset(us);
 		return USB_STOR_TRANSPORT_FAILED;
 	}
-	wait_ms(5);
+
+	if (!(us->flags & USB_READY))
+		wait_ms(200);
 	pipein = usb_rcvbulkpipe(us->pusb_dev, us->ep_in);
 	pipeout = usb_sndbulkpipe(us->pusb_dev, us->ep_out);
 	/* DATA phase + error handling */
@@ -678,6 +686,10 @@ int usb_stor_BBB_transport(ccb *srb, struct us_data *us)
 		pipe = pipeout;
 	result = usb_bulk_msg(us->pusb_dev, pipe, srb->pdata, srb->datalen,
 			      &data_actlen, USB_CNTL_TIMEOUT * 5);
+#ifdef CONFIG_USB_XHCI
+	if (result == -ETIMEDOUT)
+		return 0;
+#endif
 	/* special handling of STALL in DATA phase */
 	if ((result < 0) && (us->pusb_dev->status & USB_ST_STALLED)) {
 		USB_STOR_PRINTF("DATA:stall\n");
@@ -706,6 +718,10 @@ again:
 	USB_STOR_PRINTF("STATUS phase\n");
 	result = usb_bulk_msg(us->pusb_dev, pipein, &csw, UMASS_BBB_CSW_SIZE,
 				&actlen, USB_CNTL_TIMEOUT*5);
+#ifdef CONFIG_USB_XHCI
+	if (result == -ETIMEDOUT)
+		return 0;
+#endif
 
 	/* special handling of STALL in STATUS phase */
 	if ((result < 0) && (retry < 1) &&
@@ -927,10 +943,10 @@ static int usb_test_unit_ready(ccb *srb, struct us_data *ss)
 		srb->cmdlen = 12;
 		if (ss->transport(srb, ss) == USB_STOR_TRANSPORT_GOOD)
 			return 0;
+
 		usb_request_sense(srb, ss);
 		wait_ms(100);
 	} while (retries--);
-
 	return -1;
 }
 

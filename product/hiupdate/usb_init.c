@@ -2,18 +2,21 @@ static int usb_stor_init(void)
 {
 	int ret = -1;
 
+try_again:
 	if (usb_stop() < 0) {
 		debug("usb_stop failed\n");
 		return ret;
 	}
 
-	if (usb_init_debug() < 0) {
+	if (usb_init_debug() < 0)
 		debug("usb_init_debug failed\n");
-		return ret;
-	}
 
 	wait_ms(1000);
-	if (usb_init() < 0) {
+	ret = usb_init();
+	if (ret == -3)
+		goto try_again;
+
+	if (ret < 0) {
 		debug("usb_init failed!\n");
 		return ret;
 	}

@@ -6,6 +6,10 @@
 #include "sys_godnet.h"
 #endif
 
+#ifdef CONFIG_GODARM
+#include "sys_godarm.h"
+#endif
+
 #ifdef CONFIG_HI3535
 #include "sys_hi3535.h"
 #endif

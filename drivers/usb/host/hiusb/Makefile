@@ -5,6 +5,7 @@ include $(TOPDIR)/config.mk
 LIB	= $(obj)libhiusb.a
 
 COBJS-$(CONFIG_USB_OHCI) += hiusb-ohci.o
+COBJS-$(CONFIG_USB_XHCI) += xhci.o xhci-mem.o xhci-ring.o
 CFLAGS += -fPIC
 COBJS	:= $(COBJS-y)
 SRCS	:= $(COBJS:.o=.c)

@@ -291,9 +291,10 @@
  * ----------------------------------------------------------------------*/
 #define CONFIG_CMD_USB			1
 #define CONFIG_USB_OHCI			1 /* FIXME: CONFIG_USB_OHCI_NEW */
+#define CONFIG_USB_XHCI			1
 #define CONFIG_USB_STORAGE		1
 #define CONFIG_LEGACY_USB_INIT_SEQ
-
+#define CONFIG_SYS_USB_XHCI_MAX_ROOT_PORTS 2
 /*-----------------------------------------------------------------------
  * DDR Training
  * ----------------------------------------------------------------------*/
@@ -306,4 +307,5 @@
 #endif /* CONFIG_DDR_TRAINING_V300 */
 
 #define CONFIG_OSD_ENABLE
+#define CONFIG_SVB_ENABLE
 #endif	/* __CONFIG_H */

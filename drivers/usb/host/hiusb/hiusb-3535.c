@@ -3,8 +3,10 @@
 
 #define PERI_CRG46		(CRG_REG_BASE + 0xb8)
 #define USB_CKEN		(1 << 7)
+#define USB_CTRL_UTMI1_REG	(1 << 6)
 #define USB_CTRL_UTMI0_REG	(1 << 5)
 #define USB_CTRL_HUB_REG	(1 << 4)
+#define USBPHY_PORT1_TREQ	(1 << 3)
 #define USBPHY_PORT0_TREQ	(1 << 2)
 #define USBPHY_REQ		(1 << 1)
 #define USB_AHB_SRST_REQ	(1 << 0)
@@ -21,13 +23,15 @@ static void hiusb_ohci_enable_clk(void)
 	/* enable clock to EHCI block and HS PHY PLL */
 	reg = readl(PERI_CRG46);
 	reg |= USB_CKEN;
+	reg &= ~(USB_CTRL_UTMI1_REG);
 	reg &= ~(USB_CTRL_UTMI0_REG);
 	reg &= ~(USB_CTRL_HUB_REG);
+	reg &= ~(USBPHY_PORT1_TREQ);
 	reg &= ~(USBPHY_PORT0_TREQ);
 	reg &= ~(USBPHY_REQ);
 	reg &= ~(USB_AHB_SRST_REQ);
 	writel(reg, PERI_CRG46);
-	udelay(10);
+	udelay(100);
 	/* enable phy */
 	reg = readl(PERI_USB);
 	reg |= ULPI_BYPASS_EN;
@@ -36,10 +40,35 @@ static void hiusb_ohci_enable_clk(void)
 	reg &= ~(SS_BURST16_EN);
 	reg &= ~(USBOVR_P_CTRL);
 	writel(reg, PERI_USB);
-	udelay(10);
+	udelay(100);
 }
 
 static void hiusb_ohci_disable_clk(void)
 {
+	int reg;
+
+	/* Disable EHCI clock.
+	   If the HS PHY is unused disable it too. */
+	reg = readl(PERI_CRG46);
+	reg &= ~(USB_CKEN);
+	reg |= (USB_CTRL_UTMI1_REG);
+	reg |= (USB_CTRL_UTMI0_REG);
+	reg |= (USB_CTRL_HUB_REG);
+	reg |= (USBPHY_PORT1_TREQ);
+	reg |= (USBPHY_PORT0_TREQ);
+	reg |= (USBPHY_REQ);
+	reg |= (USB_AHB_SRST_REQ);
+	writel(reg, PERI_CRG46);
+	udelay(100);
+
+	/* disable phy */
+	reg = readl(PERI_USB);
+	reg &= ~ULPI_BYPASS_EN;
+	reg |= (WORDINTERFACE);
+	reg |= (SS_BURST16_EN);
+	reg |= (USBOVR_P_CTRL);
+	writel(reg, PERI_USB);
+	udelay(100);
+
 }
 
